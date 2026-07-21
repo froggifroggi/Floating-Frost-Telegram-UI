@@ -11,11 +11,15 @@ const defaults = Object.freeze({
     theme: 'dark',
     density: 'comfortable',
     blur: 18,
+    wallpaperDim: 18,
+    highContrast: false,
     motion: true,
     mobileEffects: false,
     desktopShell: true,
     mobileShell: true,
     autoLayout: true,
+    hiddenTools: [],
+    toolOrder: [],
 });
 
 let observer;
@@ -23,6 +27,14 @@ let chatListQuery = '';
 let recentChats = [];
 let mobileScreen = 'chats';
 const mobileMedia = window.matchMedia('(max-width: 1000px)');
+
+function updateViewportMetrics() {
+    const viewport = window.visualViewport;
+    const height = viewport?.height || window.innerHeight;
+    const keyboardInset = Math.max(0, window.innerHeight - height - (viewport?.offsetTop || 0));
+    document.documentElement.style.setProperty('--fft-viewport-height', `${height}px`);
+    document.documentElement.style.setProperty('--fft-keyboard-inset', `${keyboardInset}px`);
+}
 
 function settings() {
     extension_settings[EXTENSION_NAME] ??= {};
@@ -52,6 +64,7 @@ function applyState() {
     root.classList.toggle(ROOT_CLASS, Boolean(value.enabled));
     root.classList.toggle('fft-no-motion', !value.motion);
     root.classList.toggle('fft-mobile-effects', Boolean(value.mobileEffects));
+    root.classList.toggle('fft-high-contrast', Boolean(value.highContrast));
     root.classList.toggle('fft-desktop-shell', desktopActive);
     root.classList.toggle('fft-desktop-active', desktopActive);
     root.classList.toggle('fft-mobile-shell', Boolean(value.mobileShell));
@@ -59,6 +72,7 @@ function applyState() {
     root.dataset.fftDensity = value.density;
     root.dataset.fftTheme = value.theme;
     root.style.setProperty('--fft-blur', `${Number(value.blur) || 0}px`);
+    root.style.setProperty('--fft-wallpaper-dim', String(Math.max(0, Math.min(80, Number(value.wallpaperDim) || 0)) / 100));
     if (value.enabled) decorateMessages();
     updateMobileShell();
 }
@@ -69,6 +83,8 @@ function syncControls() {
     $('#fft_theme').val(value.theme);
     $('#fft_density').val(value.density);
     $('#fft_blur').val(value.blur);
+    $('#fft_wallpaper_dim').val(value.wallpaperDim);
+    $('#fft_high_contrast').prop('checked', value.highContrast);
     $('#fft_motion').prop('checked', value.motion);
     $('#fft_mobile_effects').prop('checked', value.mobileEffects);
     $('#fft_desktop_shell').prop('checked', value.desktopShell);
@@ -151,6 +167,8 @@ function bindControls() {
     $('#fft_theme').on('change', event => updateSetting('theme', event.currentTarget.value));
     $('#fft_density').on('change', event => updateSetting('density', event.currentTarget.value));
     $('#fft_blur').on('input', event => updateSetting('blur', Number(event.currentTarget.value)));
+    $('#fft_wallpaper_dim').on('input', event => updateSetting('wallpaperDim', Number(event.currentTarget.value)));
+    $('#fft_high_contrast').on('input', event => updateSetting('highContrast', event.currentTarget.checked));
     $('#fft_motion').on('input', event => updateSetting('motion', event.currentTarget.checked));
     $('#fft_mobile_effects').on('input', event => updateSetting('mobileEffects', event.currentTarget.checked));
     $('#fft_desktop_shell').on('input', event => updateSetting('desktopShell', event.currentTarget.checked));
@@ -300,6 +318,8 @@ function closeMobileDrawers() {
         panel.classList.remove('openDrawer');
         panel.classList.add('closedDrawer');
     });
+    delete document.documentElement.dataset.fftMobilePanel;
+    updateMobileNavState();
 }
 
 function openMobileDrawer(selector) {
@@ -309,12 +329,34 @@ function openMobileDrawer(selector) {
     if (selector === '#right-nav-panel') {
         panel.querySelector('#rm_button_characters')?.click();
     }
-    document.documentElement.classList.add('fft-mobile-drawer-open');
+    const root = document.documentElement;
+    root.classList.add('fft-mobile-drawer-open');
+    root.dataset.fftMobilePanel = panel.id;
+    updateMobileNavState();
 }
 
 function setMobileScreen(screen) {
     mobileScreen = screen;
+    closeMobileDrawers();
+    document.documentElement.classList.remove('fft-mobile-drawer-open');
     updateMobileShell();
+}
+
+function updateMobileNavState() {
+    const shell = document.querySelector('#fft_mobile_shell');
+    if (!shell) return;
+    const panel = document.documentElement.dataset.fftMobilePanel;
+    shell.querySelectorAll('.fft-mobile-nav button').forEach(button => {
+        const active = (button.dataset.fftMobile === 'chats' && mobileScreen === 'chats' && !panel)
+            || (button.dataset.fftMobile === 'tools' && mobileScreen === 'tools' && !panel)
+            || (button.dataset.fftDrawer === '#right-nav-panel' && panel === 'right-nav-panel')
+            || (button.dataset.fftDrawer === '#user-settings-block' && panel === 'user-settings-block');
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-current', active ? 'page' : 'false');
+    });
+    shell.querySelectorAll('#fft_mobile_tool_grid button').forEach(button => {
+        button.classList.toggle('is-active', button.dataset.fftDrawer === `#${panel}`);
+    });
 }
 
 function updateMobileShell() {
@@ -351,6 +393,7 @@ function updateMobileShell() {
     shell.querySelector('.fft-mobile-nav').hidden = isChat;
     renderMobileChatList();
     if (mobileScreen === 'tools') renderMobileTools();
+    updateMobileNavState();
 }
 
 function createMobileChatListItem(chat) {
@@ -389,43 +432,91 @@ function renderMobileChatList() {
     }
 }
 
-function renderMobileTools() {
-    const grid = document.querySelector('#fft_mobile_tool_grid');
+function collectMobileTools() {
     const holder = document.querySelector('body > #top-settings-holder');
-    if (!grid || !holder) return;
+    if (!holder) return [];
 
-    const drawerButtons = [...holder.querySelectorAll(':scope > .drawer')].flatMap(drawer => {
+    const drawerTools = [...holder.querySelectorAll(':scope > .drawer')].flatMap(drawer => {
         const panel = drawer.querySelector(':scope > .drawer-content');
         const sourceIcon = drawer.querySelector(':scope > :where(.drawer-toggle, .drawer-header) .drawer-icon');
         if (!(panel instanceof HTMLElement) || !panel.id) return [];
         if (panel.id === 'right-nav-panel') return [];
-
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.dataset.fftDrawer = `#${CSS.escape(panel.id)}`;
-        const icon = document.createElement('i');
         const iconClasses = [...(sourceIcon?.classList || [])].filter(name => !['drawer-icon', 'closedIcon', 'openIcon'].includes(name));
-        icon.className = iconClasses.length ? iconClasses.join(' ') : 'fa-solid fa-toolbox';
-        const label = document.createElement('span');
-        label.textContent = sourceIcon?.getAttribute('title')?.trim()
+        const label = sourceIcon?.getAttribute('title')?.trim()
             || panel.querySelector(':scope > h3, :scope > h2, :scope > strong')?.textContent?.trim()
             || panel.id;
-        button.append(icon, label);
-        return [button];
+        return [{ key: `drawer:${panel.id}`, drawer: `#${CSS.escape(panel.id)}`, label, iconClasses: iconClasses.join(' ') || 'fa-solid fa-toolbox' }];
     });
 
     const nativeTools = [
         ['#option_select_chat', icons.history, 'История и файлы чата'],
-    ].map(([selector, iconMarkup, labelText]) => {
+    ].map(([selector, iconMarkup, label]) => ({ key: `native:${selector}`, native: selector, label, iconMarkup }));
+
+    const allTools = [...drawerTools, ...nativeTools];
+    const order = settings().toolOrder;
+    return allTools.sort((a, b) => {
+        const aIndex = order.indexOf(a.key);
+        const bIndex = order.indexOf(b.key);
+        return (aIndex < 0 ? Number.MAX_SAFE_INTEGER : aIndex) - (bIndex < 0 ? Number.MAX_SAFE_INTEGER : bIndex);
+    });
+}
+
+function createMobileToolButton(tool) {
         const button = document.createElement('button');
         button.type = 'button';
-        button.dataset.fftNative = selector;
-        button.innerHTML = `${iconMarkup}<span></span>`;
-        button.querySelector('span').textContent = labelText;
+        button.dataset.fftToolKey = tool.key;
+        if (tool.drawer) button.dataset.fftDrawer = tool.drawer;
+        if (tool.native) button.dataset.fftNative = tool.native;
+        if (tool.iconMarkup) {
+            button.innerHTML = `${tool.iconMarkup}<span></span>`;
+        } else {
+            const icon = document.createElement('i');
+            icon.className = tool.iconClasses;
+            button.append(icon, document.createElement('span'));
+        }
+        button.querySelector('span').textContent = tool.label;
         return button;
-    });
+}
 
-    grid.replaceChildren(...drawerButtons, ...nativeTools);
+function renderToolPreferences(tools = collectMobileTools()) {
+    const container = document.querySelector('#fft_tool_preferences');
+    if (!container) return;
+    const hidden = settings().hiddenTools;
+    container.replaceChildren(...tools.map((tool, index) => {
+        const row = document.createElement('div');
+        row.className = 'fft-tool-preference';
+        row.innerHTML = `<label><input type="checkbox"><span></span></label><span class="fft-tool-order"><button type="button" aria-label="Выше">↑</button><button type="button" aria-label="Ниже">↓</button></span>`;
+        const checkbox = row.querySelector('input');
+        checkbox.checked = !hidden.includes(tool.key);
+        row.querySelector('label span').textContent = tool.label;
+        checkbox.addEventListener('change', () => {
+            settings().hiddenTools = checkbox.checked ? hidden.filter(key => key !== tool.key) : [...new Set([...hidden, tool.key])];
+            renderMobileTools();
+            saveSettingsDebounced();
+        });
+        const move = direction => {
+            const keys = tools.map(item => item.key);
+            const target = index + direction;
+            if (target < 0 || target >= keys.length) return;
+            [keys[index], keys[target]] = [keys[target], keys[index]];
+            settings().toolOrder = keys;
+            renderMobileTools();
+            saveSettingsDebounced();
+        };
+        row.querySelector('[aria-label="Выше"]').addEventListener('click', () => move(-1));
+        row.querySelector('[aria-label="Ниже"]').addEventListener('click', () => move(1));
+        return row;
+    }));
+}
+
+function renderMobileTools() {
+    const grid = document.querySelector('#fft_mobile_tool_grid');
+    if (!grid) return;
+    const tools = collectMobileTools();
+    const hidden = settings().hiddenTools;
+
+    grid.replaceChildren(...tools.filter(tool => !hidden.includes(tool.key)).map(createMobileToolButton));
+    renderToolPreferences(tools);
 }
 
 function createMobileShell() {
@@ -663,5 +754,9 @@ jQuery(async () => {
     bindSillyTavernEvents();
     observeMessages();
     mobileMedia.addEventListener('change', applyState);
+    window.visualViewport?.addEventListener('resize', updateViewportMetrics);
+    window.visualViewport?.addEventListener('scroll', updateViewportMetrics);
+    window.addEventListener('resize', updateViewportMetrics);
+    updateViewportMetrics();
     applyState();
 });

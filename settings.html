@@ -4,45 +4,78 @@
             <b>Floating Frost Telegram UI</b>
             <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
         </div>
-        <div class="inline-drawer-content">
-            <label class="checkbox_label" for="fft_enabled">
+        <div class="inline-drawer-content fft-settings-content">
+            <label class="fft-setting-master" for="fft_enabled">
+                <span><strong>Интерфейс включён</strong><small>Telegram-подобная оболочка поверх SillyTavern</small></span>
                 <input id="fft_enabled" type="checkbox">
-                <span>Включить новый интерфейс</span>
             </label>
-            <label for="fft_theme">Тема интерфейса</label>
-            <select id="fft_theme" class="text_pole">
-                <option value="dark">Тёмная</option>
-                <option value="light">Светлая</option>
-                <option value="glass">Стеклянная iOS</option>
-            </select>
-            <label for="fft_density">Плотность сообщений</label>
-            <select id="fft_density" class="text_pole">
-                <option value="comfortable">Комфортная</option>
-                <option value="compact">Компактная</option>
-            </select>
-            <label for="fft_blur">Интенсивность стекла</label>
-            <input id="fft_blur" type="range" min="0" max="28" step="1">
-            <label class="checkbox_label" for="fft_motion">
-                <input id="fft_motion" type="checkbox">
-                <span>Плавные анимации</span>
-            </label>
-            <label class="checkbox_label" for="fft_mobile_effects">
-                <input id="fft_mobile_effects" type="checkbox">
-                <span>Стеклянные эффекты на мобильных</span>
-            </label>
-            <label class="checkbox_label" for="fft_desktop_shell">
-                <input id="fft_desktop_shell" type="checkbox">
-                <span>Трёхколоночный интерфейс на ПК</span>
-            </label>
-            <label class="checkbox_label" for="fft_mobile_shell_enabled">
-                <input id="fft_mobile_shell_enabled" type="checkbox">
-                <span>Отдельный мобильный интерфейс</span>
-            </label>
-            <label class="checkbox_label" for="fft_auto_layout">
-                <input id="fft_auto_layout" type="checkbox">
-                <span>Автоматически выбирать интерфейс по ширине</span>
-            </label>
-            <small>Расширение меняет только представление и не заменяет штатные сообщения, свайпы или кнопки.</small>
+
+            <section class="fft-settings-group">
+                <div class="fft-settings-heading"><i class="fa-solid fa-palette"></i><span>Оформление</span></div>
+                <label class="fft-setting-row" for="fft_theme">
+                    <span><strong>Тема</strong><small>Тёмная, светлая или плотное стекло</small></span>
+                    <select id="fft_theme" class="text_pole">
+                        <option value="dark">Тёмная</option>
+                        <option value="light">Светлая</option>
+                        <option value="glass">Стеклянная iOS</option>
+                    </select>
+                </label>
+                <label class="fft-setting-row" for="fft_density">
+                    <span><strong>Сообщения</strong><small>Расстояние между пузырями</small></span>
+                    <select id="fft_density" class="text_pole">
+                        <option value="comfortable">Комфортно</option>
+                        <option value="compact">Компактно</option>
+                    </select>
+                </label>
+                <label class="fft-setting-slider" for="fft_blur">
+                    <span><strong>Размытие</strong><small>Интенсивность прозрачных поверхностей</small></span>
+                    <input id="fft_blur" type="range" min="0" max="28" step="1">
+                </label>
+                <label class="fft-setting-slider" for="fft_wallpaper_dim">
+                    <span><strong>Затемнение обоев</strong><small>Повышает читаемость на ярких изображениях</small></span>
+                    <input id="fft_wallpaper_dim" type="range" min="0" max="80" step="1">
+                </label>
+                <label class="fft-setting-toggle" for="fft_high_contrast">
+                    <span><strong>Повышенный контраст</strong><small>Более плотные панели и пузыри</small></span>
+                    <input id="fft_high_contrast" type="checkbox">
+                </label>
+            </section>
+
+            <section class="fft-settings-group">
+                <div class="fft-settings-heading"><i class="fa-solid fa-window-restore"></i><span>Компоновка</span></div>
+                <label class="fft-setting-toggle" for="fft_auto_layout">
+                    <span><strong>Автовыбор</strong><small>Переключать ПК и телефон при 1000 px</small></span>
+                    <input id="fft_auto_layout" type="checkbox">
+                </label>
+                <label class="fft-setting-toggle" for="fft_desktop_shell">
+                    <span><strong>Версия для ПК</strong><small>Rail, диалоги, чат и правая панель</small></span>
+                    <input id="fft_desktop_shell" type="checkbox">
+                </label>
+                <label class="fft-setting-toggle" for="fft_mobile_shell_enabled">
+                    <span><strong>Версия для телефона</strong><small>Отдельная мобильная навигация</small></span>
+                    <input id="fft_mobile_shell_enabled" type="checkbox">
+                </label>
+            </section>
+
+            <section class="fft-settings-group">
+                <div class="fft-settings-heading"><i class="fa-solid fa-wand-magic-sparkles"></i><span>Эффекты</span></div>
+                <label class="fft-setting-toggle" for="fft_motion">
+                    <span><strong>Анимации</strong><small>Плавные переходы и состояния</small></span>
+                    <input id="fft_motion" type="checkbox">
+                </label>
+                <label class="fft-setting-toggle" for="fft_mobile_effects">
+                    <span><strong>Стекло на телефоне</strong><small>Дополнительный blur; расходует больше ресурсов</small></span>
+                    <input id="fft_mobile_effects" type="checkbox">
+                </label>
+            </section>
+
+            <section class="fft-settings-group">
+                <div class="fft-settings-heading"><i class="fa-solid fa-toolbox"></i><span>Мобильные инструменты</span></div>
+                <small class="fft-settings-group-note">Скрывайте редкие пункты и меняйте их порядок. Штатные функции не удаляются.</small>
+                <div id="fft_tool_preferences" class="fft-tool-preferences"></div>
+            </section>
+
+            <small class="fft-settings-note"><i class="fa-solid fa-shield-halved"></i> Расширение меняет только представление. Сообщения, генерация и данные остаются штатными.</small>
         </div>
     </div>
 </div>

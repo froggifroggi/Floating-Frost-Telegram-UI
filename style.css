@@ -606,6 +606,181 @@ html.fft-enabled.fft-no-motion * {
     }
 }
 
+/* Compact extension settings. Kept last so native extension styles cannot flatten it. */
+html.fft-enabled #fft_settings .fft-settings-content {
+    display: flex;
+    padding: 8px 2px 2px;
+    flex-direction: column;
+    gap: 10px;
+}
+
+html.fft-enabled #fft_settings :where(.fft-setting-master, .fft-setting-row, .fft-setting-slider, .fft-setting-toggle) {
+    display: flex;
+    min-width: 0;
+    margin: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+html.fft-enabled #fft_settings :where(.fft-setting-master, .fft-setting-row, .fft-setting-slider, .fft-setting-toggle) > span {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+}
+
+html.fft-enabled #fft_settings :where(.fft-setting-master, .fft-setting-row, .fft-setting-slider, .fft-setting-toggle) small {
+    color: var(--fft-muted);
+    font-size: 11px;
+    line-height: 1.25;
+}
+
+html.fft-enabled #fft_settings .fft-setting-master {
+    padding: 11px 12px;
+    border: 1px solid rgba(51, 144, 236, 0.3);
+    border-radius: 15px;
+    background: rgba(51, 144, 236, 0.12);
+}
+
+html.fft-enabled #fft_settings .fft-settings-group {
+    display: flex;
+    padding: 4px 11px;
+    flex-direction: column;
+    border: 1px solid var(--fft-border);
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.035);
+}
+
+html.fft-enabled #fft_settings .fft-settings-heading {
+    display: flex;
+    min-height: 34px;
+    align-items: center;
+    gap: 8px;
+    color: var(--fft-muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+html.fft-enabled #fft_settings :where(.fft-setting-row, .fft-setting-slider, .fft-setting-toggle) {
+    min-height: 49px;
+    padding: 7px 0;
+    border-top: 1px solid var(--fft-border);
+}
+
+html.fft-enabled #fft_settings :where(select, input[type="range"]) {
+    width: min(44%, 150px);
+    min-width: 108px;
+    margin: 0;
+}
+
+html.fft-enabled #fft_settings :where(input[type="checkbox"]) {
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    margin: 0;
+}
+
+html.fft-enabled #fft_settings .fft-settings-note {
+    display: flex;
+    padding: 2px 5px 5px;
+    align-items: flex-start;
+    gap: 7px;
+    color: var(--fft-muted);
+    line-height: 1.35;
+}
+
+/* High-contrast light theme. */
+html.fft-enabled[data-fft-theme="light"] :where(
+    #fft_chat_list, #fft_context_panel, #fft_chat_header,
+    .fft-mobile-appbar, .fft-mobile-nav, .fft-mobile-chats-screen, .fft-mobile-tools-screen,
+    #form_sheld, body > #top-settings-holder .drawer-content.openDrawer,
+    dialog.popup, .popup, .options-content, #extensionsMenu, #quickPersonaMenu
+) {
+    color: #14202b !important;
+    border-color: rgba(29, 49, 68, 0.18) !important;
+    background: rgba(248, 251, 254, 0.97) !important;
+    box-shadow: 0 12px 34px rgba(48, 67, 84, 0.16) !important;
+}
+
+html.fft-enabled[data-fft-theme="light"] :where(
+    .fft-chat-list-item, .fft-mobile-chat-item, .fft-mobile-tool-grid button,
+    .fft-context-profile, .fft-context-stats > div, .fft-context-actions button,
+    .extension_container, .inline-drawer, .range-block, .world_entry,
+    .character_select, .avatar-container
+) {
+    color: #14202b !important;
+    border-color: rgba(29, 49, 68, 0.15) !important;
+    background: rgba(255, 255, 255, 0.86) !important;
+}
+
+html.fft-enabled[data-fft-theme="light"] #chat .mes:not([is_user="true"]) {
+    color: #14202b !important;
+    border: 1px solid rgba(29, 49, 68, 0.16) !important;
+    background: rgba(255, 255, 255, 0.94) !important;
+    box-shadow: 0 5px 18px rgba(32, 52, 70, 0.13) !important;
+}
+
+html.fft-enabled[data-fft-theme="light"] #chat .mes[is_user="true"] {
+    color: #fff !important;
+    border: 1px solid rgba(15, 105, 181, 0.28) !important;
+    background: linear-gradient(145deg, #3a9bea, #187bc9) !important;
+    box-shadow: 0 5px 18px rgba(20, 105, 174, 0.2) !important;
+}
+
+html.fft-enabled[data-fft-theme="light"] #chat .mes[is_user="true"] :where(.mes_text, .name_text, .timestamp, .mesIDDisplay) {
+    color: inherit !important;
+}
+
+html.fft-enabled[data-fft-theme="light"] :where(input, textarea, select, .text_pole, .select2-selection) {
+    color: #14202b !important;
+    border-color: rgba(29, 49, 68, 0.2) !important;
+    background: rgba(255, 255, 255, 0.96) !important;
+}
+
+html.fft-enabled[data-fft-theme="light"] :where(.fft-header-status, .fft-mobile-subtitle, .fft-chat-list-bottom, .fft-context-chat, small) {
+    color: #5c6d7d;
+}
+
+html.fft-enabled[data-fft-theme="light"] :where(.menu_button, .menu_button_default, .right_menu_button, .fft-header-button) {
+    color: #263746 !important;
+    border-color: rgba(29, 49, 68, 0.14) !important;
+    background-color: rgba(226, 234, 241, 0.92) !important;
+}
+
+/* Denser iOS-like glass: translucent, but readable over bright wallpapers. */
+html.fft-enabled[data-fft-theme="glass"] :where(
+    #fft_chat_list, #fft_context_panel, #fft_chat_header,
+    .fft-mobile-appbar, .fft-mobile-nav, .fft-mobile-chats-screen, .fft-mobile-tools-screen,
+    #form_sheld, body > #top-settings-holder .drawer-content.openDrawer
+) {
+    background: linear-gradient(145deg, rgba(72, 87, 98, 0.72), rgba(36, 49, 59, 0.64)) !important;
+    border-color: rgba(255, 255, 255, 0.36) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34), 0 14px 42px rgba(7, 15, 22, 0.28) !important;
+}
+
+html.fft-enabled[data-fft-theme="glass"] #chat .mes:not([is_user="true"]) {
+    color: #f8fbfd !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    background: linear-gradient(145deg, rgba(45, 59, 70, 0.88), rgba(24, 36, 46, 0.84)) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 8px 26px rgba(5, 13, 20, 0.3) !important;
+}
+
+html.fft-enabled[data-fft-theme="glass"] #chat .mes[is_user="true"] {
+    color: #fff !important;
+    border: 1px solid rgba(220, 239, 255, 0.34) !important;
+    background: linear-gradient(145deg, rgba(40, 126, 194, 0.92), rgba(24, 91, 148, 0.9)) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 8px 26px rgba(5, 30, 50, 0.3) !important;
+}
+
+html.fft-enabled[data-fft-theme="glass"] #chat .mes :where(.mes_text, .name_text) {
+    color: inherit !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);
+}
+
 /* Theme variants and native wallpaper integration. */
 html.fft-enabled {
     --fft-page-bg: #0e1621;
@@ -2156,5 +2331,145 @@ html.fft-enabled body > .ctx-blocker > ul {
     html.fft-enabled :where(dialog.popup, .popup, .options-content) {
         border-radius: 22px 22px 0 0;
         background: rgba(17, 28, 40, 0.98);
+    }
+}
+
+/* Final adaptive and accessibility layer. */
+html.fft-enabled body > #bg1::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, var(--fft-wallpaper-dim, 0.18));
+    pointer-events: none;
+}
+
+html.fft-enabled.fft-mobile-active #fft_mobile_shell {
+    height: var(--fft-viewport-height, 100dvh);
+    max-height: var(--fft-viewport-height, 100dvh);
+}
+
+html.fft-enabled.fft-mobile-active body > #sheld,
+html.fft-enabled.fft-mobile-active body > #top-settings-holder .drawer-content.openDrawer {
+    max-height: calc(var(--fft-viewport-height, 100dvh) - 58px) !important;
+}
+
+html.fft-enabled.fft-mobile-active #form_sheld {
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
+}
+
+html.fft-enabled.fft-mobile-active .fft-mobile-appbar {
+    padding-left: max(10px, env(safe-area-inset-left));
+    padding-right: max(10px, env(safe-area-inset-right));
+}
+
+html.fft-enabled.fft-mobile-active .fft-mobile-nav button.is-active,
+html.fft-enabled.fft-mobile-active .fft-mobile-tool-grid button.is-active {
+    color: #fff;
+    background: rgba(51, 144, 236, 0.22) !important;
+}
+
+html.fft-enabled.fft-mobile-active .fft-mobile-nav button.is-active::after {
+    content: '';
+    width: 18px;
+    height: 3px;
+    border-radius: 999px;
+    background: var(--fft-accent);
+}
+
+html.fft-enabled #fft_settings .fft-settings-group-note {
+    padding: 0 0 8px;
+    color: var(--fft-muted);
+    font-size: 11px;
+    line-height: 1.3;
+}
+
+html.fft-enabled #fft_settings .fft-tool-preferences {
+    display: flex;
+    flex-direction: column;
+}
+
+html.fft-enabled #fft_settings .fft-tool-preference {
+    display: flex;
+    min-height: 38px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    border-top: 1px solid var(--fft-border);
+}
+
+html.fft-enabled #fft_settings .fft-tool-preference label {
+    display: flex;
+    min-width: 0;
+    margin: 0;
+    align-items: center;
+    gap: 8px;
+}
+
+html.fft-enabled #fft_settings .fft-tool-preference label span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+html.fft-enabled #fft_settings .fft-tool-order {
+    display: flex;
+    gap: 4px;
+}
+
+html.fft-enabled #fft_settings .fft-tool-order button {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--fft-border);
+    border-radius: 9px;
+    color: var(--fft-text);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+html.fft-enabled.fft-high-contrast {
+    --fft-border: rgba(255, 255, 255, 0.34);
+    --fft-muted: #d3dde5;
+}
+
+html.fft-enabled.fft-high-contrast #chat .mes:not([is_user="true"]) {
+    color: #fff !important;
+    background: rgba(20, 31, 41, 0.96) !important;
+}
+
+html.fft-enabled.fft-high-contrast #chat .mes[is_user="true"] {
+    color: #fff !important;
+    background: linear-gradient(145deg, #238cdd, #1265aa) !important;
+}
+
+html.fft-enabled[data-fft-theme="light"].fft-high-contrast {
+    --fft-border: rgba(20, 39, 56, 0.3);
+    --fft-muted: #405261;
+}
+
+html.fft-enabled[data-fft-theme="light"].fft-high-contrast #chat .mes:not([is_user="true"]) {
+    color: #0b141c !important;
+    background: #fff !important;
+}
+
+html.fft-enabled:not(.fft-no-motion) #chat .fft-message {
+    animation: fft-message-enter 220ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+html.fft-enabled:not(.fft-no-motion) :where(.fft-mobile-tool-grid button, .fft-mobile-nav button, .fft-chat-list-item) {
+    transition: transform 140ms ease, background-color 180ms ease, border-color 180ms ease;
+}
+
+html.fft-enabled:not(.fft-no-motion) :where(.fft-mobile-tool-grid button, .fft-mobile-nav button, .fft-chat-list-item):active {
+    transform: scale(0.97);
+}
+
+@keyframes fft-message-enter {
+    from { opacity: 0; transform: translateY(7px) scale(0.992); }
+    to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html.fft-enabled #chat .fft-message {
+        animation: none !important;
     }
 }
