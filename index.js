@@ -2,8 +2,8 @@ import { extension_settings, getContext } from '../../../extensions.js';
 import { saveSettingsDebounced } from '../../../../script.js';
 import { openGroupById, openGroupChat } from '../../../group-chats.js';
 
-const EXTENSION_NAME = 'third-party/floating-frost-telegram';
-const EXTENSION_PATH = '/scripts/extensions/third-party/floating-frost-telegram';
+const EXTENSION_NAME = 'third-party/Floating-Frost-Telegram-UI';
+const EXTENSION_PATH = '/scripts/extensions/third-party/Floating-Frost-Telegram-UI';
 const ROOT_CLASS = 'fft-enabled';
 
 const defaults = Object.freeze({
