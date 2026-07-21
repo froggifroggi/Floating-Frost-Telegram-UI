@@ -1,0 +1,2160 @@
+:root {
+    --fft-accent: #3390ec;
+    --fft-accent-strong: #168acd;
+    --fft-surface: rgba(24, 37, 51, 0.72);
+    --fft-surface-strong: rgba(32, 48, 64, 0.88);
+    --fft-border: rgba(255, 255, 255, 0.11);
+    --fft-text: #f3f7fb;
+    --fft-muted: #9fb1c1;
+    --fft-user: linear-gradient(145deg, rgba(43, 132, 214, 0.96), rgba(38, 111, 184, 0.92));
+    --fft-bot: linear-gradient(145deg, rgba(39, 53, 68, 0.94), rgba(29, 43, 57, 0.9));
+    --fft-blur: 18px;
+    --fft-radius: 18px;
+    --fft-chat-width: 1120px;
+    --fft-speed: 180ms;
+    --fft-rail-width: 66px;
+    --fft-list-width: clamp(280px, 23vw, 350px);
+}
+
+html.fft-enabled body {
+    color: var(--fft-text);
+    background-color: #0e1621;
+    background-image:
+        radial-gradient(circle at 18% 12%, rgba(51, 144, 236, 0.22), transparent 34%),
+        radial-gradient(circle at 82% 88%, rgba(70, 190, 165, 0.13), transparent 32%),
+        linear-gradient(145deg, #0e1621, #172737 58%, #0f1c28);
+}
+
+html.fft-enabled body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0.24;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.15'/%3E%3C/svg%3E");
+}
+
+html.fft-enabled #sheld {
+    max-width: var(--fft-chat-width);
+    border-inline: 1px solid var(--fft-border);
+    background: rgba(11, 23, 34, 0.34);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(var(--fft-blur));
+    -webkit-backdrop-filter: blur(var(--fft-blur));
+}
+
+html.fft-enabled #chat {
+    padding: 18px clamp(12px, 3vw, 42px) 28px;
+    scrollbar-color: rgba(130, 166, 196, 0.45) transparent;
+}
+
+#fft_chat_header {
+    display: none;
+}
+
+#fft_chat_list {
+    display: none;
+}
+
+html.fft-enabled #extensionTopBar {
+    display: none !important;
+}
+
+@media screen and (min-width: 1001px) {
+    html.fft-enabled.fft-desktop-shell body {
+        overflow: hidden;
+    }
+
+    html.fft-enabled.fft-desktop-shell #top-bar {
+        display: none !important;
+    }
+
+    html.fft-enabled.fft-desktop-shell #extensionTopBar {
+        display: none !important;
+    }
+
+    html.fft-enabled.fft-desktop-shell #top-settings-holder {
+        position: fixed !important;
+        inset: 0 auto 0 0 !important;
+        display: flex !important;
+        width: var(--fft-rail-width) !important;
+        height: 100dvh !important;
+        padding: 18px 7px 12px !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 8px !important;
+        overflow: visible !important;
+        border-right: 1px solid var(--fft-border);
+        background: rgba(12, 22, 32, 0.94);
+        box-shadow: none;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        z-index: 4100;
+    }
+
+    html.fft-enabled.fft-desktop-shell #top-settings-holder > .drawer {
+        position: static !important;
+        width: 48px !important;
+        min-width: 48px !important;
+        height: 48px !important;
+        margin: 0 !important;
+        flex: 0 0 48px;
+    }
+
+    html.fft-enabled.fft-desktop-shell #top-settings-holder .drawer-toggle,
+    html.fft-enabled.fft-desktop-shell #top-settings-holder .drawer-header {
+        position: static !important;
+        display: grid !important;
+        width: 48px !important;
+        height: 48px !important;
+        place-items: center;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.045);
+    }
+
+    html.fft-enabled.fft-desktop-shell #top-settings-holder .drawer-icon {
+        position: static !important;
+        display: block !important;
+        width: auto !important;
+        margin: 0 !important;
+        color: var(--fft-muted);
+        font-size: 21px;
+    }
+
+    html.fft-enabled.fft-desktop-shell #top-settings-holder .drawer-toggle:hover {
+        background: rgba(51, 144, 236, 0.18);
+    }
+
+    /* Native drawers keep their native roles and open over the workspace. */
+    html.fft-enabled.fft-desktop-shell #right-nav-panel {
+        position: fixed !important;
+        inset: 64px auto 64px calc(var(--fft-rail-width) + var(--fft-list-width) + (100vw - var(--fft-rail-width) - var(--fft-list-width) - min(760px, calc(100vw - var(--fft-rail-width) - var(--fft-list-width) - 32px))) / 2) !important;
+        display: none !important;
+        width: min(760px, calc(100vw - var(--fft-rail-width) - var(--fft-list-width) - 32px)) !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        height: auto !important;
+        max-height: calc(100dvh - 128px) !important;
+        padding: 14px 12px !important;
+        flex-direction: column;
+        overflow: hidden auto !important;
+        border: 1px solid var(--fft-border);
+        border-radius: 18px;
+        background: rgba(17, 28, 40, 0.96);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.52);
+        transform: none !important;
+        opacity: 1 !important;
+        z-index: 3050;
+    }
+
+    html.fft-enabled.fft-desktop-shell #right-nav-panel.openDrawer {
+        display: flex !important;
+    }
+
+    html.fft-enabled.fft-desktop-shell #right-nav-panel #character_search_bar,
+    html.fft-enabled.fft-desktop-shell #right-nav-panel .text_pole {
+        border: 1px solid transparent;
+        border-radius: 15px;
+        background: rgba(255, 255, 255, 0.065);
+    }
+
+    html.fft-enabled.fft-desktop-shell #right-nav-panel .character_select {
+        margin-block: 3px;
+        padding: 8px;
+        border: 0;
+        border-radius: 14px;
+        background: transparent;
+    }
+
+    html.fft-enabled.fft-desktop-shell #right-nav-panel .character_select:hover,
+    html.fft-enabled.fft-desktop-shell #right-nav-panel .character_select.ch_selected {
+        background: rgba(51, 144, 236, 0.18);
+    }
+
+    html.fft-enabled.fft-desktop-shell #left-nav-panel {
+        position: fixed !important;
+        inset: 64px auto 64px calc(var(--fft-rail-width) + var(--fft-list-width) + (100vw - var(--fft-rail-width) - var(--fft-list-width) - min(760px, calc(100vw - var(--fft-rail-width) - var(--fft-list-width) - 32px))) / 2) !important;
+        display: none !important;
+        width: min(760px, calc(100vw - var(--fft-rail-width) - var(--fft-list-width) - 32px)) !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        height: auto !important;
+        max-height: calc(100dvh - 128px) !important;
+        padding: 16px 15px !important;
+        flex-direction: column;
+        overflow: hidden auto !important;
+        border: 1px solid var(--fft-border);
+        border-radius: 18px;
+        background: rgba(17, 28, 40, 0.96);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.52);
+        transform: none !important;
+        opacity: 1 !important;
+        z-index: 3050;
+    }
+
+    html.fft-enabled.fft-desktop-shell #left-nav-panel.openDrawer {
+        display: flex !important;
+    }
+
+    html.fft-enabled.fft-desktop-shell #fft_chat_list {
+        position: fixed;
+        inset: 0 auto 0 var(--fft-rail-width);
+        display: flex;
+        width: var(--fft-list-width);
+        padding: 14px 10px 10px;
+        flex-direction: column;
+        gap: 10px;
+        overflow: hidden;
+        border-right: 1px solid var(--fft-border);
+        background: rgba(17, 28, 40, 0.92);
+        backdrop-filter: blur(var(--fft-blur));
+        z-index: 3000;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-chat-list-head,
+    html.fft-enabled.fft-desktop-shell .fft-chat-list-search,
+    html.fft-enabled.fft-desktop-shell .fft-chat-list-item {
+        display: flex;
+        align-items: center;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-chat-list-head {
+        min-height: 42px;
+        padding-inline: 8px 3px;
+        justify-content: space-between;
+        font-size: 18px;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-chat-list-add {
+        width: 38px;
+        height: 38px;
+        border: 0;
+        border-radius: 50%;
+        color: var(--fft-muted);
+        background: transparent;
+        cursor: pointer;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-chat-list-search {
+        min-height: 42px;
+        padding-inline: 13px;
+        gap: 9px;
+        border-radius: 18px;
+        color: var(--fft-muted);
+        background: rgba(255, 255, 255, 0.065);
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-chat-list-search input {
+        width: 100%;
+        min-width: 0;
+        border: 0;
+        outline: 0;
+        color: var(--fft-text);
+        background: transparent;
+    }
+
+    html.fft-enabled.fft-desktop-shell #fft_chat_list_items {
+        display: flex;
+        min-height: 0;
+        flex: 1;
+        flex-direction: column;
+        gap: 3px;
+        overflow: hidden auto;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-chat-list-item {
+        width: 100%;
+        min-height: 66px;
+        padding: 7px 9px;
+        gap: 10px;
+        border: 0;
+        border-radius: 14px;
+        color: var(--fft-text);
+        text-align: left;
+        background: transparent;
+        cursor: pointer;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-chat-list-item:hover {
+        background: rgba(255, 255, 255, 0.06);
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-chat-list-item.active {
+        background: rgba(51, 144, 236, 0.26);
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-chat-list-avatar {
+        width: 50px;
+        height: 50px;
+        flex: 0 0 50px;
+        object-fit: cover;
+        border-radius: 50%;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-chat-list-copy {
+        display: flex;
+        min-width: 0;
+        flex: 1;
+        flex-direction: column;
+        gap: 3px;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-chat-list-top,
+    html.fft-enabled.fft-desktop-shell .fft-chat-list-bottom,
+    html.fft-enabled.fft-desktop-shell .fft-chat-list-meta {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-chat-list-top,
+    html.fft-enabled.fft-desktop-shell .fft-chat-list-bottom {
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-chat-list-date,
+    html.fft-enabled.fft-desktop-shell .fft-chat-list-meta {
+        flex: 0 0 auto;
+        color: var(--fft-muted);
+        font-size: 11px;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-chat-list-meta {
+        gap: 7px;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-chat-list-count {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-chat-list-name,
+    html.fft-enabled.fft-desktop-shell .fft-chat-list-preview {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-chat-list-preview,
+    html.fft-enabled.fft-desktop-shell .fft-chat-list-empty {
+        color: var(--fft-muted);
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-chat-list-empty {
+        padding: 24px 10px;
+        text-align: center;
+    }
+
+    html.fft-enabled.fft-desktop-shell #sheld {
+        position: fixed !important;
+        inset: 0 0 0 calc(var(--fft-rail-width) + var(--fft-list-width)) !important;
+        width: auto !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        height: 100dvh !important;
+        max-height: 100dvh !important;
+        margin: 0 !important;
+        border: 0;
+        border-radius: 0;
+        background: rgba(9, 17, 26, 0.42);
+        resize: none !important;
+    }
+
+    html.fft-enabled.fft-desktop-shell #sheldheader,
+    html.fft-enabled.fft-desktop-shell #sheld .pull-tab {
+        display: none !important;
+    }
+
+    html.fft-enabled.fft-desktop-shell #fft_chat_header {
+        display: flex;
+        min-height: 66px;
+        padding: 9px 14px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border-bottom: 1px solid var(--fft-border);
+        background: rgba(16, 27, 39, 0.88);
+        backdrop-filter: blur(var(--fft-blur));
+        z-index: 80;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-header-identity,
+    html.fft-enabled.fft-desktop-shell .fft-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-header-avatar {
+        width: 44px;
+        height: 44px;
+        flex: 0 0 44px;
+        object-fit: cover;
+        border-radius: 50%;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-header-copy {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-header-title {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-header-status {
+        color: var(--fft-muted);
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-header-button {
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        color: var(--fft-muted);
+        background: transparent;
+        cursor: pointer;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-header-button:hover {
+        color: white;
+        background: rgba(255, 255, 255, 0.08);
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-header-button svg {
+        width: 21px;
+        height: 21px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        pointer-events: none;
+    }
+
+    html.fft-enabled.fft-desktop-shell #chat {
+        max-height: none !important;
+        padding-top: 20px;
+        background-color: transparent;
+    }
+}
+
+html.fft-enabled #chat .mes {
+    position: relative;
+    width: min(78%, 780px);
+    margin: 5px auto 12px 0;
+    padding: 10px 14px 9px;
+    border: 1px solid var(--fft-border);
+    border-radius: var(--fft-radius) var(--fft-radius) var(--fft-radius) 6px;
+    background: var(--fft-bot);
+    box-shadow: 0 7px 24px rgba(0, 0, 0, 0.16);
+    backdrop-filter: blur(calc(var(--fft-blur) * 0.45));
+    -webkit-backdrop-filter: blur(calc(var(--fft-blur) * 0.45));
+    transition: transform var(--fft-speed) ease, box-shadow var(--fft-speed) ease;
+}
+
+html.fft-enabled #chat .mes[is_user="true"] {
+    margin-right: 0;
+    margin-left: auto;
+    border-radius: var(--fft-radius) var(--fft-radius) 6px var(--fft-radius);
+    background: var(--fft-user);
+}
+
+html.fft-enabled #chat .mes[is_system="true"] {
+    width: fit-content;
+    max-width: 88%;
+    margin-inline: auto;
+    color: var(--fft-muted);
+    background: rgba(15, 28, 40, 0.68);
+}
+
+html.fft-enabled #chat .mes:hover {
+    box-shadow: 0 9px 30px rgba(0, 0, 0, 0.22);
+}
+
+html.fft-enabled #chat .mes_text {
+    color: var(--fft-text);
+    line-height: 1.48;
+    overflow-wrap: anywhere;
+}
+
+html.fft-enabled #chat .name_text,
+html.fft-enabled #chat .mes_timestamp,
+html.fft-enabled #chat .tokenCounterDisplay {
+    color: var(--fft-muted);
+}
+
+html.fft-enabled #chat .mes[is_user="true"] .name_text,
+html.fft-enabled #chat .mes[is_user="true"] .mes_timestamp {
+    color: rgba(255, 255, 255, 0.76);
+}
+
+html.fft-enabled #chat .avatar img {
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 50%;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.24);
+}
+
+html.fft-enabled #chat .mes_buttons,
+html.fft-enabled #chat .mes_edit_buttons,
+html.fft-enabled #chat .mes_reasoning_actions {
+    border-radius: 12px;
+    background: rgba(8, 17, 26, 0.5);
+    backdrop-filter: blur(10px);
+}
+
+html.fft-enabled #chat .mes_reasoning_details {
+    margin-block: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 12px;
+    background: rgba(6, 15, 24, 0.24);
+}
+
+html.fft-enabled #chat .swipe_left,
+html.fft-enabled #chat .swipe_right {
+    color: rgba(255, 255, 255, 0.76);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+}
+
+html.fft-enabled #send_form {
+    margin: 8px auto max(10px, env(safe-area-inset-bottom));
+    padding: 7px 9px;
+    border: 1px solid var(--fft-border);
+    border-radius: 22px;
+    background: var(--fft-surface-strong);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.26);
+    backdrop-filter: blur(var(--fft-blur));
+    -webkit-backdrop-filter: blur(var(--fft-blur));
+}
+
+html.fft-enabled #send_textarea {
+    color: var(--fft-text);
+    background: transparent;
+    caret-color: var(--fft-accent);
+}
+
+html.fft-enabled #send_textarea::placeholder {
+    color: var(--fft-muted);
+}
+
+html.fft-enabled #send_form .fa-solid,
+html.fft-enabled #send_form .fa-regular,
+html.fft-enabled #send_form .fa-brands {
+    color: var(--fft-muted);
+}
+
+html.fft-enabled #send_form #send_but,
+html.fft-enabled #send_form #mes_stop {
+    color: white;
+    border-radius: 50%;
+    background: var(--fft-accent);
+}
+
+html.fft-enabled[data-fft-density="compact"] #chat .mes {
+    margin-bottom: 6px;
+    padding-block: 7px;
+}
+
+html.fft-enabled.fft-no-motion * {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html.fft-enabled * {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Font Awesome keeps its own font declarations. This extension assigns no font-family. */
+
+@media screen and (max-width: 1000px) {
+    #fft_chat_list {
+        display: none !important;
+    }
+
+    html.fft-enabled #sheld {
+        width: 100%;
+        max-width: none;
+        border: 0;
+        box-shadow: none;
+    }
+
+    html.fft-enabled:not(.fft-mobile-effects) #sheld,
+    html.fft-enabled:not(.fft-mobile-effects) #chat .mes {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
+
+    html.fft-enabled #chat {
+        padding-inline: clamp(8px, 2.5vw, 22px);
+    }
+
+    html.fft-enabled #chat .mes {
+        width: min(84%, 720px);
+    }
+}
+
+/* Theme variants and native wallpaper integration. */
+html.fft-enabled {
+    --fft-page-bg: #0e1621;
+    background: var(--fft-page-bg);
+}
+
+html.fft-enabled body,
+html.fft-enabled.fft-mobile-active body {
+    background-color: transparent !important;
+    background-image: none !important;
+}
+
+html.fft-enabled body > #bg1 {
+    pointer-events: none;
+}
+
+html.fft-enabled body > #sheld,
+html.fft-enabled body > #sheld > #chat {
+    background-color: transparent !important;
+    background-image: none !important;
+}
+
+html.fft-enabled.fft-mobile-active[data-fft-mobile-screen="chat"] body > #sheld {
+    background: rgba(11, 17, 25, 0.38) !important;
+    backdrop-filter: blur(calc(var(--fft-blur) * 0.35));
+    -webkit-backdrop-filter: blur(calc(var(--fft-blur) * 0.35));
+}
+
+html.fft-enabled[data-fft-theme="light"] {
+    --fft-page-bg: #e9eef4;
+    --fft-accent: #1683dc;
+    --fft-accent-strong: #0873c8;
+    --fft-surface: rgba(255, 255, 255, 0.82);
+    --fft-surface-strong: rgba(248, 251, 255, 0.92);
+    --fft-border: rgba(39, 64, 88, 0.16);
+    --fft-text: #172331;
+    --fft-muted: #637587;
+    --fft-user: linear-gradient(145deg, rgba(74, 158, 235, 0.96), rgba(42, 132, 214, 0.94));
+    --fft-bot: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(237, 243, 249, 0.94));
+}
+
+html.fft-enabled[data-fft-theme="light"] :where(
+    #fft_chat_list,
+    #fft_context_panel,
+    #fft_chat_header,
+    .fft-mobile-appbar,
+    .fft-mobile-nav,
+    .fft-mobile-chats-screen,
+    .fft-mobile-tools-screen,
+    #form_sheld,
+    body > #top-settings-holder .drawer-content.openDrawer
+) {
+    color: var(--fft-text) !important;
+    border-color: var(--fft-border) !important;
+    background: rgba(245, 249, 253, 0.94) !important;
+}
+
+html.fft-enabled[data-fft-theme="light"] :where(
+    .fft-chat-list-item,
+    .fft-mobile-chat-item,
+    .fft-mobile-tool-grid button,
+    .fft-context-profile,
+    .fft-context-stats > div,
+    #send_form,
+    input,
+    textarea,
+    select,
+    .text_pole
+) {
+    color: var(--fft-text) !important;
+    border-color: rgba(39, 64, 88, 0.14) !important;
+    background-color: rgba(255, 255, 255, 0.78) !important;
+}
+
+html.fft-enabled[data-fft-theme="light"] #chat .mes:not([is_user="true"]) {
+    color: var(--fft-text) !important;
+}
+
+html.fft-enabled[data-fft-theme="light"] :where(.fft-header-status, .fft-mobile-subtitle, .fft-chat-list-bottom, .fft-context-chat) {
+    color: var(--fft-muted) !important;
+}
+
+html.fft-enabled[data-fft-theme="glass"] {
+    --fft-page-bg: #33414c;
+    --fft-accent: #dcecff;
+    --fft-accent-strong: #ffffff;
+    --fft-surface: rgba(205, 221, 231, 0.16);
+    --fft-surface-strong: rgba(221, 232, 240, 0.2);
+    --fft-border: rgba(255, 255, 255, 0.32);
+    --fft-text: #f8fbfd;
+    --fft-muted: rgba(238, 246, 250, 0.72);
+    --fft-user: linear-gradient(145deg, rgba(210, 230, 241, 0.3), rgba(141, 169, 187, 0.22));
+    --fft-bot: linear-gradient(145deg, rgba(221, 235, 243, 0.2), rgba(126, 151, 167, 0.16));
+}
+
+html.fft-enabled[data-fft-theme="glass"] :where(
+    #fft_chat_list,
+    #fft_context_panel,
+    #fft_chat_header,
+    .fft-mobile-appbar,
+    .fft-mobile-nav,
+    .fft-mobile-chats-screen,
+    .fft-mobile-tools-screen,
+    #send_form,
+    body > #top-settings-holder .drawer-content.openDrawer
+) {
+    color: var(--fft-text) !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+    background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.2), rgba(174, 197, 211, 0.09)) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.38),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.08),
+        0 14px 38px rgba(12, 23, 31, 0.2) !important;
+    backdrop-filter: blur(max(18px, var(--fft-blur))) saturate(145%) !important;
+    -webkit-backdrop-filter: blur(max(18px, var(--fft-blur))) saturate(145%) !important;
+}
+
+html.fft-enabled[data-fft-theme="glass"] :where(
+    .fft-chat-list-item,
+    .fft-mobile-chat-item,
+    .fft-mobile-tool-grid button,
+    .fft-context-profile,
+    .fft-context-stats > div,
+    .fft-context-actions button,
+    #leftSendForm > *,
+    #rightSendForm > *,
+    input,
+    textarea,
+    select,
+    .text_pole
+) {
+    color: var(--fft-text) !important;
+    border-color: rgba(255, 255, 255, 0.28) !important;
+    background-color: rgba(219, 233, 241, 0.13) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.32),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.04) !important;
+}
+
+html.fft-enabled[data-fft-theme="glass"] #chat .mes {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        0 8px 24px rgba(7, 15, 22, 0.16);
+    backdrop-filter: blur(14px) saturate(135%);
+    -webkit-backdrop-filter: blur(14px) saturate(135%);
+}
+
+html.fft-enabled[data-fft-theme="glass"].fft-mobile-active[data-fft-mobile-screen="chat"] body > #sheld {
+    background: rgba(65, 80, 91, 0.08) !important;
+}
+
+/* Independent mobile application shell. Desktop geometry does not flow into it. */
+#fft_mobile_shell {
+    display: none;
+}
+
+@media screen and (max-width: 1000px) {
+    html.fft-mobile-active {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+    }
+
+    html.fft-mobile-active body {
+        position: fixed;
+        inset: 0;
+        width: 100dvw;
+        height: 100dvh;
+        overflow: hidden;
+    }
+
+    html.fft-mobile-active body > #top-bar,
+    html.fft-mobile-active #fft_chat_list,
+    html.fft-mobile-active #fft_context_panel,
+    html.fft-mobile-active #fft_chat_header,
+    html.fft-mobile-active #extensionTopBar {
+        display: none !important;
+    }
+
+    html.fft-mobile-active body > #top-settings-holder {
+        position: fixed !important;
+        inset: 0 auto auto 0 !important;
+        display: block !important;
+        width: 0 !important;
+        min-width: 0 !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        border: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        z-index: 5000;
+    }
+
+    html.fft-mobile-active body > #top-settings-holder > .drawer {
+        width: 0 !important;
+        min-width: 0 !important;
+        max-width: 0 !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        overflow: visible !important;
+    }
+
+    html.fft-mobile-active body > #top-settings-holder > .drawer > :where(.drawer-toggle, .drawer-header) {
+        display: none !important;
+    }
+
+    html.fft-mobile-active #fft_mobile_shell {
+        position: fixed;
+        inset: 0;
+        display: block;
+        width: 100dvw !important;
+        height: 100dvh !important;
+        min-height: 100dvh !important;
+        color: var(--fft-text);
+        pointer-events: none;
+        z-index: 4400;
+    }
+
+    html.fft-mobile-active #fft_mobile_shell svg {
+        width: 23px;
+        height: 23px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        pointer-events: none;
+    }
+
+    html.fft-mobile-active .fft-mobile-appbar {
+        position: absolute;
+        inset: 0 0 auto;
+        display: flex;
+        height: 58px;
+        padding: max(7px, env(safe-area-inset-top)) 10px 7px;
+        align-items: center;
+        gap: 9px;
+        border-bottom: 1px solid var(--fft-border);
+        background: rgba(16, 27, 39, 0.98);
+        pointer-events: auto;
+        z-index: 2;
+    }
+
+    html.fft-mobile-active .fft-mobile-appbar button {
+        display: grid;
+        width: 40px;
+        height: 40px;
+        flex: 0 0 40px;
+        padding: 0;
+        place-items: center;
+        border: 0;
+        border-radius: 50%;
+        color: var(--fft-text);
+        background: rgba(255, 255, 255, 0.075);
+    }
+
+    html.fft-mobile-active .fft-mobile-avatar {
+        width: 40px;
+        height: 40px;
+        flex: 0 0 40px;
+        object-fit: cover;
+        border-radius: 50%;
+    }
+
+    html.fft-mobile-active .fft-mobile-heading {
+        display: flex;
+        min-width: 0;
+        flex: 1;
+        flex-direction: column;
+    }
+
+    html.fft-mobile-active .fft-mobile-title,
+    html.fft-mobile-active .fft-mobile-subtitle {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    html.fft-mobile-active .fft-mobile-title {
+        font-size: 17px;
+    }
+
+    html.fft-mobile-active .fft-mobile-subtitle {
+        color: var(--fft-muted);
+        font-size: 12px;
+    }
+
+    html.fft-mobile-active :where(.fft-mobile-chats-screen, .fft-mobile-tools-screen) {
+        position: absolute;
+        inset: 58px 0 68px;
+        padding: 10px;
+        overflow: hidden auto;
+        background: #0e1621;
+        pointer-events: auto;
+    }
+
+    html.fft-mobile-active :where(.fft-mobile-chats-screen, .fft-mobile-tools-screen)[hidden] {
+        display: none !important;
+    }
+
+    html.fft-mobile-active .fft-mobile-search {
+        display: flex;
+        height: 42px;
+        margin-bottom: 8px;
+        padding: 0 13px;
+        align-items: center;
+        gap: 9px;
+        border: 1px solid rgba(255, 255, 255, 0.075);
+        border-radius: 14px;
+        color: var(--fft-muted);
+        background: rgba(255, 255, 255, 0.065);
+    }
+
+    html.fft-mobile-active .fft-mobile-search input {
+        min-width: 0;
+        height: 100%;
+        padding: 0;
+        flex: 1;
+        border: 0;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    html.fft-mobile-active #fft_mobile_chat_list {
+        display: flex;
+        flex-direction: column;
+    }
+
+    html.fft-mobile-active .fft-mobile-chat-item {
+        display: flex;
+        width: 100%;
+        min-height: 72px;
+        padding: 8px 5px;
+        align-items: center;
+        gap: 11px;
+        border: 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.065);
+        border-radius: 0;
+        color: var(--fft-text);
+        text-align: left;
+        background: transparent;
+    }
+
+    html.fft-mobile-active .fft-mobile-chat-avatar {
+        width: 54px;
+        height: 54px;
+        flex: 0 0 54px;
+        object-fit: cover;
+        border-radius: 50%;
+    }
+
+    html.fft-mobile-active .fft-mobile-chat-copy {
+        display: flex;
+        min-width: 0;
+        flex: 1;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    html.fft-mobile-active .fft-mobile-chat-line {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        justify-content: space-between;
+        gap: 9px;
+    }
+
+    html.fft-mobile-active .fft-mobile-chat-line strong,
+    html.fft-mobile-active .fft-mobile-chat-line small {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    html.fft-mobile-active .fft-mobile-chat-line strong {
+        font-size: 16px;
+    }
+
+    html.fft-mobile-active .fft-mobile-chat-line :where(time, small, span) {
+        color: var(--fft-muted);
+        font-size: 12px;
+    }
+
+    html.fft-mobile-active .fft-mobile-chat-meta span {
+        min-width: 25px;
+        padding: 2px 7px;
+        flex: 0 0 auto;
+        border-radius: 999px;
+        color: #fff;
+        text-align: center;
+        background: rgba(51, 144, 236, 0.72);
+    }
+
+    html.fft-mobile-active .fft-mobile-empty {
+        padding: 50px 12px;
+        color: var(--fft-muted);
+        text-align: center;
+    }
+
+    html.fft-mobile-active .fft-mobile-tool-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    html.fft-mobile-active .fft-mobile-tool-grid button {
+        display: flex;
+        min-height: 104px;
+        padding: 15px;
+        align-items: flex-start;
+        justify-content: space-between;
+        flex-direction: column;
+        border: 1px solid rgba(255, 255, 255, 0.085);
+        border-radius: 18px;
+        color: var(--fft-text);
+        text-align: left;
+        background: rgba(255, 255, 255, 0.055);
+    }
+
+    html.fft-mobile-active .fft-mobile-tool-grid button > :first-child {
+        width: 26px;
+        height: 26px;
+        color: #73b9ff;
+        font-size: 23px;
+    }
+
+    html.fft-mobile-active .fft-mobile-nav {
+        position: absolute;
+        inset: auto 0 0;
+        display: grid;
+        height: 68px;
+        padding: 5px max(5px, env(safe-area-inset-right)) max(5px, env(safe-area-inset-bottom)) max(5px, env(safe-area-inset-left));
+        grid-template-columns: repeat(4, 1fr);
+        border-top: 1px solid var(--fft-border);
+        background: rgba(16, 27, 39, 0.99);
+        pointer-events: auto;
+    }
+
+    html.fft-mobile-active .fft-mobile-nav[hidden] {
+        display: none !important;
+    }
+
+    html.fft-mobile-active .fft-mobile-nav button {
+        display: flex;
+        min-width: 0;
+        padding: 3px;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 3px;
+        border: 0;
+        border-radius: 12px;
+        color: var(--fft-muted);
+        background: transparent;
+    }
+
+    html.fft-mobile-active .fft-mobile-nav button:first-child {
+        color: #73b9ff;
+        background: rgba(51, 144, 236, 0.12);
+    }
+
+    html.fft-mobile-active .fft-mobile-nav span {
+        max-width: 100%;
+        overflow: hidden;
+        font-size: 11px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    html.fft-mobile-active[data-fft-mobile-screen="chats"] body > #sheld,
+    html.fft-mobile-active[data-fft-mobile-screen="tools"] body > #sheld {
+        display: none !important;
+    }
+
+    html.fft-mobile-active[data-fft-mobile-screen="chat"] body > #sheld {
+        position: fixed !important;
+        inset: 58px 0 0 !important;
+        display: flex !important;
+        width: 100dvw !important;
+        height: calc(100dvh - 58px) !important;
+        max-width: none !important;
+        max-height: none !important;
+        margin: 0 !important;
+        border: 0 !important;
+    }
+
+    html.fft-mobile-active #chat {
+        padding: 8px 7px 12px;
+        background: #0b1119;
+    }
+
+    html.fft-mobile-active #chat .mes,
+    html.fft-mobile-active #chat .mes[is_system="true"] {
+        width: min(94%, 620px);
+        max-width: 94%;
+        margin: 4px auto 8px 0;
+        padding: 9px 11px 8px;
+        border-radius: 17px 17px 17px 5px;
+    }
+
+    html.fft-mobile-active #chat .mes[is_user="true"] {
+        margin-right: 0;
+        margin-left: auto;
+        border-radius: 17px 17px 5px 17px;
+    }
+
+    html.fft-mobile-active #chat .mesAvatarWrapper {
+        display: none !important;
+    }
+
+    html.fft-mobile-active #chat .mes_block {
+        min-width: 0;
+        padding-left: 0;
+    }
+
+    html.fft-mobile-active #chat .mes_text {
+        padding-right: 0;
+        font-size: 15px !important;
+        line-height: 1.45 !important;
+        word-break: normal;
+        overflow-wrap: break-word;
+    }
+
+    html.fft-mobile-active #form_sheld {
+        padding: 0 6px max(6px, env(safe-area-inset-bottom));
+        background: #0b1119;
+    }
+
+    html.fft-mobile-active #send_form {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: 50px;
+        margin: 0;
+        padding: 5px 6px;
+        border-radius: 20px;
+    }
+
+    html.fft-mobile-active #nonQRFormItems {
+        display: flex !important;
+        min-height: 42px;
+        align-items: center;
+        gap: 5px;
+    }
+
+    html.fft-enabled.fft-mobile-active #leftSendForm,
+    html.fft-enabled.fft-mobile-active #rightSendForm {
+        display: flex !important;
+        width: 82px !important;
+        min-width: 82px !important;
+        max-width: 82px !important;
+        height: 40px !important;
+        flex: 0 0 82px !important;
+        align-items: center;
+        gap: 2px;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        scrollbar-width: none;
+    }
+
+    html.fft-enabled.fft-mobile-active :where(#leftSendForm, #rightSendForm)::-webkit-scrollbar {
+        display: none;
+    }
+
+    html.fft-enabled.fft-mobile-active :where(#leftSendForm, #rightSendForm) > * {
+        width: 38px !important;
+        min-width: 38px !important;
+        height: 38px !important;
+        min-height: 38px !important;
+        flex: 0 0 38px !important;
+        place-items: center;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.075);
+    }
+
+    html.fft-enabled.fft-mobile-active #extensionsMenuButton {
+        display: grid;
+        order: 1;
+    }
+
+    html.fft-enabled.fft-mobile-active #options_button {
+        order: 0;
+    }
+
+    html.fft-enabled.fft-mobile-active #leftSendForm > :not(#options_button):not(#extensionsMenuButton) {
+        order: 2;
+    }
+
+    html.fft-enabled.fft-mobile-active #send_form :where(#send_but, #mes_stop) {
+        color: var(--fft-text) !important;
+        background: rgba(255, 255, 255, 0.075) !important;
+        box-shadow: none !important;
+    }
+
+    html.fft-enabled.fft-mobile-active body > #top-settings-holder #right-nav-panel #rm_characters_block {
+        display: flex !important;
+        min-height: 0 !important;
+        flex: 1 1 auto;
+        flex-direction: column;
+        overflow: hidden !important;
+    }
+
+    html.fft-enabled.fft-mobile-active body > #top-settings-holder #right-nav-panel #rm_print_characters_block {
+        min-height: 0 !important;
+        max-height: calc(100dvh - 320px) !important;
+        padding-bottom: max(14px, env(safe-area-inset-bottom));
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    html.fft-enabled.fft-mobile-active body > #top-settings-holder #right-nav-panel #HotSwapWrapper {
+        min-width: 0 !important;
+        max-width: 100% !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        overscroll-behavior-inline: contain;
+        scrollbar-width: thin;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    html.fft-enabled.fft-mobile-active body > #top-settings-holder #right-nav-panel .hotswap.avatars_inline {
+        width: max-content !important;
+        min-width: 100%;
+        max-width: none !important;
+        flex: 0 0 max-content;
+        flex-wrap: nowrap !important;
+        gap: 5px;
+        overflow: visible !important;
+    }
+
+    html.fft-mobile-active #send_textarea {
+        min-width: 0 !important;
+        min-height: 40px;
+        max-height: 120px;
+        padding: 9px 4px;
+        flex: 1;
+        font-size: 15px !important;
+    }
+
+    html.fft-mobile-active body > #top-settings-holder .drawer-content.openDrawer {
+        position: fixed !important;
+        inset: 58px 0 0 !important;
+        display: block !important;
+        width: 100dvw !important;
+        min-width: 0 !important;
+        max-width: 100dvw !important;
+        height: calc(100dvh - 58px) !important;
+        max-height: calc(100dvh - 58px) !important;
+        margin: 0 !important;
+        padding: 12px 10px max(12px, env(safe-area-inset-bottom)) !important;
+        overflow: hidden auto !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        background: #0e1621 !important;
+        transform: none !important;
+        z-index: 5100 !important;
+    }
+
+    html.fft-mobile-active #fft_mobile_panel_close {
+        display: none;
+    }
+
+    html.fft-mobile-active.fft-mobile-drawer-open #fft_mobile_panel_close {
+        position: fixed;
+        inset: 7px auto auto 8px;
+        display: flex;
+        width: 42px;
+        height: 42px;
+        padding: 0;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        border-radius: 50%;
+        color: var(--fft-text);
+        background: rgba(51, 144, 236, 0.2);
+        pointer-events: auto;
+        z-index: 5200;
+    }
+}
+
+/* 0.6.7: targeted layout pass based on the annotated desktop/mobile review. */
+@media screen and (min-width: 1001px) {
+    /* Use the available centre column without changing the right information panel. */
+    html.fft-enabled.fft-desktop-shell #chat {
+        padding-inline: clamp(18px, 2.2vw, 38px);
+    }
+
+    html.fft-enabled.fft-desktop-shell #chat .mes {
+        width: min(92%, 980px);
+    }
+
+    /* Prompt Manager: readable name column and permanently legible actions. */
+    html.fft-enabled.fft-desktop-shell #completion_prompt_manager #completion_prompt_manager_list li {
+        grid-template-columns: minmax(0, 1fr) 54px 58px;
+        gap: 8px;
+    }
+
+    html.fft-enabled.fft-desktop-shell #completion_prompt_manager #completion_prompt_manager_list li.completion_prompt_manager_prompt {
+        min-height: 44px;
+        padding: 7px 9px;
+    }
+
+    html.fft-enabled.fft-desktop-shell #completion_prompt_manager #completion_prompt_manager_list li.completion_prompt_manager_prompt span span span {
+        opacity: 0.78;
+    }
+}
+
+/* Touch layouts must not depend on hover and may report a desktop-like CSS width. */
+@media screen and (max-width: 1000px), (hover: none), (pointer: coarse) {
+    html.fft-enabled #top-settings-holder {
+        inset-inline: 0 !important;
+        display: flex !important;
+        width: 100dvw !important;
+        max-width: 100dvw !important;
+        padding-inline: max(5px, env(safe-area-inset-left)) max(5px, env(safe-area-inset-right)) !important;
+        justify-content: flex-start !important;
+        gap: 1px !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        scroll-padding-inline: 5px;
+        scrollbar-width: none;
+    }
+
+    html.fft-enabled #top-settings-holder::-webkit-scrollbar {
+        display: none;
+    }
+
+    html.fft-enabled #top-settings-holder > .drawer {
+        width: 34px !important;
+        min-width: 34px !important;
+        max-width: 34px !important;
+        flex: 0 0 34px !important;
+    }
+
+    html.fft-enabled #top-settings-holder .drawer-toggle,
+    html.fft-enabled #top-settings-holder .drawer-header {
+        background-color: rgba(255, 255, 255, 0.055);
+    }
+
+    html.fft-enabled :where(.menu_button, .right_menu_button, .interactable):not(.drawer-icon),
+    html.fft-enabled #completion_prompt_manager .prompt_manager_prompt_controls span,
+    html.fft-enabled .welcomeRecent .recentChat {
+        opacity: 1;
+    }
+
+    html.fft-enabled :where(.menu_button, .right_menu_button, .interactable):not(.drawer-icon) {
+        border-color: rgba(255, 255, 255, 0.11);
+        background-color: rgba(255, 255, 255, 0.07);
+    }
+
+    /* Persona Management becomes one continuous, non-clipped column. */
+    html.fft-enabled #persona-management-block {
+        display: flex !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    html.fft-enabled #persona-management-block :where(.persona_management_left_column, .persona_management_right_column) {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        flex: 0 0 auto !important;
+    }
+
+    html.fft-enabled #persona-management-block .persona_management_left_column {
+        max-height: 46dvh;
+        padding-right: 3px;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+    }
+
+    html.fft-enabled #persona_controls,
+    html.fft-enabled #persona_connections_buttons {
+        flex-wrap: wrap;
+    }
+
+    html.fft-enabled #persona_description {
+        width: 100% !important;
+        min-height: 160px;
+    }
+
+    /* Settings sliders use one full-width row each. */
+    html.fft-enabled #user-settings-block [name="FontBlurChatWidthBlock"] {
+        display: flex !important;
+        width: 100% !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+    }
+
+    html.fft-enabled #user-settings-block [name="FontBlurChatWidthBlock"] > div {
+        width: 100% !important;
+        min-width: 0 !important;
+        padding: 8px 10px;
+        align-items: stretch !important;
+        border: 1px solid rgba(255, 255, 255, 0.075);
+        border-radius: 13px;
+        background: rgba(255, 255, 255, 0.035);
+        flex: 0 0 auto !important;
+    }
+
+    html.fft-enabled #user-settings-block [name="FontBlurChatWidthBlock"] .neo-range-slider {
+        width: 100% !important;
+    }
+}
+
+@media screen and (max-width: 1000px), (hover: none) and (pointer: coarse) {
+    /* Compact the native welcome area without exposing message previews. */
+    html.fft-enabled .welcomePanel {
+        gap: 7px;
+        padding: 8px;
+    }
+
+    html.fft-enabled .welcomePanel .welcomeHeaderTitle {
+        display: none;
+    }
+
+    html.fft-enabled .welcomeRecent .recentChatList {
+        gap: 5px;
+    }
+
+    html.fft-enabled .welcomeRecent .recentChatList .recentChat {
+        min-height: 58px;
+        padding: 6px 8px;
+        background: rgba(255, 255, 255, 0.055);
+    }
+
+    html.fft-enabled .welcomeRecent .recentChatList .recentChat .chatMessageContainer {
+        display: none;
+    }
+
+    html.fft-enabled #chat:has(.welcomePanel) > .mes:not(:has(.welcomePanel)) {
+        display: none;
+    }
+
+    /* Messages use the screen rather than leaving a narrow text column. */
+    html.fft-enabled #chat {
+        padding-inline: max(5px, env(safe-area-inset-left)) max(5px, env(safe-area-inset-right));
+    }
+
+    html.fft-enabled #chat .mes,
+    html.fft-enabled #chat .mes[is_system="true"] {
+        width: 100%;
+        max-width: 100%;
+        margin-inline: 0;
+        padding: 8px 9px 7px;
+    }
+
+    html.fft-enabled #chat .mes_text {
+        font-size: 15px;
+        line-height: 1.45;
+        overflow-wrap: break-word;
+        word-break: normal;
+    }
+
+    /* Send controls stay in a single touch-scrollable row instead of overlapping. */
+    html.fft-enabled #nonQRFormItems {
+        display: flex !important;
+        min-width: 0;
+        gap: 4px;
+    }
+
+    html.fft-enabled #leftSendForm,
+    html.fft-enabled #rightSendForm {
+        display: flex !important;
+        width: 40px !important;
+        min-width: 40px !important;
+        max-width: 40px !important;
+        height: 42px !important;
+        flex: 0 0 40px !important;
+        flex-flow: row nowrap !important;
+        justify-content: flex-start !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        scrollbar-width: none;
+    }
+
+    html.fft-enabled :where(#leftSendForm, #rightSendForm)::-webkit-scrollbar {
+        display: none;
+    }
+
+    html.fft-enabled :where(#leftSendForm, #rightSendForm) > * {
+        width: 34px !important;
+        min-width: 34px !important;
+        height: 34px !important;
+        min-height: 34px !important;
+        flex: 0 0 34px !important;
+    }
+
+    html.fft-enabled #send_textarea {
+        min-width: 0 !important;
+        font-size: 15px;
+    }
+}
+
+@media screen and (max-width: 450px) {
+    :root {
+        --fft-radius: 16px;
+    }
+
+    html.fft-enabled body {
+        min-height: 100dvh;
+        background-image: linear-gradient(160deg, #0e1621, #172737);
+    }
+
+    html.fft-enabled #chat {
+        padding: 8px max(6px, env(safe-area-inset-left)) 16px max(6px, env(safe-area-inset-right));
+    }
+
+    html.fft-enabled #chat .mes {
+        width: 100%;
+        max-width: 100%;
+        margin-inline: 0;
+        margin-bottom: 7px;
+        padding: 8px 10px 7px;
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.14);
+    }
+
+    html.fft-enabled #chat .mes[is_system="true"] {
+        max-width: 94%;
+    }
+
+    html.fft-enabled #chat .mes_buttons,
+    html.fft-enabled #chat .mes_edit_buttons {
+        max-width: calc(100vw - 28px);
+        overflow-x: auto;
+    }
+
+    html.fft-enabled #send_form {
+        width: calc(100% - 10px) !important;
+        max-width: calc(100% - 10px) !important;
+        box-sizing: border-box;
+        margin: 5px max(5px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(5px, env(safe-area-inset-left));
+        border-radius: 19px;
+    }
+
+    html.fft-enabled #nonQRFormItems {
+        width: 100%;
+        min-height: 58px;
+        height: auto !important;
+        align-items: center;
+    }
+
+    html.fft-enabled #leftSendForm,
+    html.fft-enabled #rightSendForm {
+        width: 40px !important;
+        max-width: 40px !important;
+        height: 42px !important;
+        max-height: 42px;
+        flex: 0 0 40px !important;
+        flex-flow: row nowrap !important;
+        align-content: center;
+        justify-content: flex-start;
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+
+    html.fft-enabled #leftSendForm > *,
+    html.fft-enabled #rightSendForm > * {
+        flex: 0 0 40px;
+        width: 40px;
+        min-width: 40px;
+        height: 40px;
+        min-height: 40px;
+    }
+
+    html.fft-enabled #send_textarea {
+        min-height: 42px;
+        max-height: 96px;
+        align-self: center;
+    }
+}
+
+/* Unified Telegram / iOS visual language */
+html.fft-enabled body,
+html.fft-enabled input,
+html.fft-enabled textarea,
+html.fft-enabled select,
+html.fft-enabled button:not(.fa):not(.fa-solid):not(.fa-regular):not(.fa-brands) {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", Inter, Roboto, Arial, sans-serif;
+}
+
+html.fft-enabled :where(input, textarea, select, .text_pole) {
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 13px;
+    color: var(--fft-text);
+    background-color: rgba(255, 255, 255, 0.065);
+    box-shadow: inset 0 1px rgba(255, 255, 255, 0.025);
+}
+
+html.fft-enabled :where(input, textarea, select, .text_pole):focus {
+    border-color: rgba(51, 144, 236, 0.72);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(51, 144, 236, 0.14);
+}
+
+html.fft-enabled :where(.menu_button, .right_menu_button, .interactable):not(.drawer-icon) {
+    border-radius: 11px;
+}
+
+html.fft-enabled :where(dialog.popup, .popup, .popup-body, .options-content, .list-group) {
+    border-color: var(--fft-border);
+    color: var(--fft-text);
+    background: rgba(20, 32, 45, 0.96);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(var(--fft-blur));
+    -webkit-backdrop-filter: blur(var(--fft-blur));
+}
+
+html.fft-enabled :where(dialog.popup, .popup, .options-content) {
+    border-radius: 22px;
+}
+
+html.fft-enabled :where(.inline-drawer, .inline-drawer-content, .range-block) {
+    border-radius: 14px;
+}
+
+html.fft-enabled :where(.inline-drawer-header, .popup-header) {
+    letter-spacing: -0.01em;
+}
+
+/* Flat section headers: discard the legacy embossed theme treatment. */
+html.fft-enabled #extensions_settings .inline-drawer-toggle.inline-drawer-header,
+html.fft-enabled #extensions_settings2 .inline-drawer-toggle.inline-drawer-header,
+html.fft-enabled #user-settings-block h4,
+html.fft-enabled #WorldInfo .standoutHeader {
+    margin-bottom: 6px;
+    padding: 8px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.075);
+    border-radius: 12px;
+    color: var(--fft-text);
+    background-color: rgba(255, 255, 255, 0.045);
+    background-image: none !important;
+    box-shadow: none !important;
+    filter: none !important;
+}
+
+html.fft-enabled #extensions_settings .inline-drawer-toggle.inline-drawer-header:hover,
+html.fft-enabled #extensions_settings2 .inline-drawer-toggle.inline-drawer-header:hover,
+html.fft-enabled #user-settings-block h4:hover,
+html.fft-enabled #WorldInfo .standoutHeader:hover {
+    border-color: rgba(51, 144, 236, 0.28);
+    background-color: rgba(51, 144, 236, 0.11);
+    background-image: none !important;
+    filter: none !important;
+}
+
+html.fft-enabled ::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+}
+
+html.fft-enabled ::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+html.fft-enabled ::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: rgba(159, 177, 193, 0.42);
+    background-clip: padding-box;
+}
+
+#fft_context_panel {
+    display: none;
+}
+
+#fft_context_panel svg {
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    pointer-events: none;
+}
+
+@media screen and (min-width: 1001px) {
+    :root {
+        --fft-side-width: clamp(310px, 22vw, 390px);
+    }
+
+    html.fft-enabled.fft-desktop-shell #fft_context_panel {
+        position: fixed;
+        inset: 0 0 0 auto;
+        display: flex;
+        width: var(--fft-side-width);
+        padding: 18px 16px;
+        flex-direction: column;
+        gap: 18px;
+        overflow: hidden auto;
+        border-left: 1px solid var(--fft-border);
+        color: var(--fft-text);
+        background:
+            radial-gradient(circle at 50% 0, rgba(51, 144, 236, 0.14), transparent 34%),
+            rgba(17, 28, 40, 0.94);
+        backdrop-filter: blur(var(--fft-blur));
+        z-index: 3000;
+    }
+
+    html.fft-enabled.fft-desktop-shell:has(body > #top-settings-holder .drawer-content.openDrawer) #fft_context_panel {
+        display: none;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-context-heading,
+    html.fft-enabled.fft-desktop-shell .fft-context-profile,
+    html.fft-enabled.fft-desktop-shell .fft-context-actions {
+        display: flex;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-context-heading {
+        min-height: 38px;
+        align-items: center;
+        gap: 10px;
+        color: var(--fft-muted);
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-context-profile {
+        padding: 20px 14px;
+        align-items: center;
+        flex-direction: column;
+        gap: 8px;
+        text-align: center;
+        border: 1px solid var(--fft-border);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.045);
+        box-shadow: inset 0 1px rgba(255, 255, 255, 0.04);
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-context-avatar {
+        width: 92px;
+        height: 92px;
+        margin-bottom: 4px;
+        object-fit: cover;
+        border: 3px solid rgba(255, 255, 255, 0.13);
+        border-radius: 50%;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-context-name {
+        font-size: 18px;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-context-chat {
+        max-width: 100%;
+        overflow: hidden;
+        color: var(--fft-muted);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-context-stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-context-stats > div {
+        display: flex;
+        min-width: 0;
+        padding: 11px 5px;
+        align-items: center;
+        flex-direction: column;
+        gap: 3px;
+        border-radius: 15px;
+        background: rgba(255, 255, 255, 0.045);
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-context-stats strong {
+        max-width: 100%;
+        overflow: hidden;
+        color: #fff;
+        text-overflow: ellipsis;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-context-stats small {
+        color: var(--fft-muted);
+        font-size: 10px;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-context-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-context-actions button {
+        display: flex;
+        width: 100%;
+        min-height: 48px;
+        padding: 10px 13px;
+        align-items: center;
+        gap: 11px;
+        border: 1px solid transparent;
+        border-radius: 15px;
+        color: var(--fft-text);
+        text-align: left;
+        background: rgba(255, 255, 255, 0.045);
+        cursor: pointer;
+    }
+
+    html.fft-enabled.fft-desktop-shell .fft-context-actions button:hover {
+        border-color: rgba(51, 144, 236, 0.28);
+        background: rgba(51, 144, 236, 0.14);
+    }
+
+    html.fft-enabled.fft-desktop-shell #sheld {
+        right: var(--fft-side-width) !important;
+    }
+
+    html.fft-enabled.fft-desktop-shell #chat {
+        padding-inline: clamp(18px, 2.2vw, 38px);
+    }
+
+    html.fft-enabled.fft-desktop-shell #chat .mes {
+        width: min(92%, 980px);
+    }
+
+    /* Every top-bar drawer occupies the right slot instead of covering chat. */
+    html.fft-enabled.fft-desktop-shell body > #top-settings-holder .drawer-content.openDrawer {
+        position: fixed !important;
+        inset: 0 0 0 auto !important;
+        display: flex !important;
+        width: var(--fft-side-width) !important;
+        min-width: 0 !important;
+        max-width: var(--fft-side-width) !important;
+        height: 100dvh !important;
+        max-height: 100dvh !important;
+        margin: 0 !important;
+        padding: 16px 14px !important;
+        flex-direction: column;
+        overflow: hidden auto !important;
+        border: 0 !important;
+        border-left: 1px solid var(--fft-border) !important;
+        border-radius: 0 !important;
+        color: var(--fft-text);
+        background: rgba(17, 28, 40, 0.97) !important;
+        box-shadow: -18px 0 55px rgba(0, 0, 0, 0.24) !important;
+        transform: none !important;
+        opacity: 1 !important;
+        z-index: 4050 !important;
+    }
+
+    html.fft-enabled.fft-desktop-shell body > #top-settings-holder .drawer-content.openDrawer :where(#lm_button_panel_pin_div, #rm_button_panel_pin_div, #WI_button_panel_pin_div) {
+        display: none !important;
+    }
+
+    /* Narrow docked drawers use one readable column. */
+    html.fft-enabled.fft-desktop-shell body > #top-settings-holder .drawer-content.openDrawer .extensions_block {
+        display: flex !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        flex-direction: column !important;
+        flex-wrap: nowrap !important;
+        gap: 5px;
+    }
+
+    html.fft-enabled.fft-desktop-shell body > #top-settings-holder .drawer-content.openDrawer :where(#extensions_settings, #extensions_settings2) {
+        display: flex !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        flex-direction: column !important;
+        flex-wrap: nowrap !important;
+        flex: 0 0 auto !important;
+    }
+
+    /* World Info's desktop two-column top row is too narrow inside the dock. */
+    html.fft-enabled.fft-desktop-shell body > #top-settings-holder .drawer-content.openDrawer #wiTopBlock {
+        display: flex !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    html.fft-enabled.fft-desktop-shell body > #top-settings-holder .drawer-content.openDrawer :where(#WIMultiSelector, #wiTopBlock > .range-block) {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        flex: 0 0 auto !important;
+    }
+
+    html.fft-enabled.fft-desktop-shell body > #top-settings-holder .drawer-content.openDrawer #WIMultiSelector :where(.range-block-range, .select2-container) {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        flex: 0 0 auto !important;
+    }
+
+    /* Native Author's Note uses the same non-overlapping right workspace. */
+    html.fft-enabled.fft-desktop-shell body > #movingDivs > #floatingPrompt {
+        position: fixed !important;
+        inset: 0 0 0 auto !important;
+        width: var(--fft-side-width) !important;
+        min-width: 0 !important;
+        max-width: var(--fft-side-width) !important;
+        height: 100dvh !important;
+        max-height: 100dvh !important;
+        margin: 0 !important;
+        padding: 16px 14px !important;
+        overflow: hidden auto !important;
+        border: 0 !important;
+        border-left: 1px solid var(--fft-border) !important;
+        border-radius: 0 !important;
+        background: rgba(17, 28, 40, 0.98) !important;
+        box-shadow: -18px 0 55px rgba(0, 0, 0, 0.24) !important;
+        transform: none !important;
+        z-index: 4200 !important;
+    }
+
+    html.fft-enabled.fft-desktop-shell:has(body > #movingDivs > #floatingPrompt[style*="display: flex"]) #fft_context_panel {
+        display: none;
+    }
+
+    /* Keep every installed rail entry, including Horae, reachable on short screens. */
+    html.fft-enabled.fft-desktop-shell body > #top-settings-holder {
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        scrollbar-width: none;
+    }
+
+    html.fft-enabled.fft-desktop-shell body > #top-settings-holder::-webkit-scrollbar {
+        display: none;
+    }
+
+    html.fft-enabled.fft-desktop-shell body > #top-settings-holder > #horae_drawer {
+        display: block;
+        flex: 0 0 auto;
+    }
+
+    /* Avatar preview must float above the rail, chat list and docked tools. */
+    html.fft-enabled.fft-desktop-shell body > .zoomed_avatar {
+        position: fixed !important;
+        inset: 50% auto auto 50% !important;
+        width: min(520px, 72vw) !important;
+        max-width: min(520px, 72vw) !important;
+        max-height: 86dvh !important;
+        transform: translate(-50%, -50%) !important;
+        z-index: 9000 !important;
+    }
+}
+
+/* Consistent iOS-like internals for presets, extensions, lorebooks and dialogs. */
+html.fft-enabled :where(#rm_extensions_block, #left-nav-panel, #WorldInfo, #floatingPrompt, dialog.popup, .popup) :where(.inline-drawer, .extension_container, .range-block, .world_entry, .preset-manager-container) {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.045);
+    box-shadow: inset 0 1px rgba(255, 255, 255, 0.035);
+}
+
+html.fft-enabled :where(#rm_extensions_block, #left-nav-panel, #WorldInfo, #floatingPrompt, dialog.popup, .popup) :where(.inline-drawer-header, .extension_container, .world_entry) {
+    padding: 10px 12px;
+}
+
+html.fft-enabled :where(#rm_extensions_block, #left-nav-panel, #WorldInfo, #floatingPrompt, dialog.popup, .popup) :where(input:not([type="checkbox"]):not([type="radio"]), textarea, select, .text_pole) {
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 12px !important;
+    background: rgba(5, 14, 23, 0.48) !important;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+html.fft-enabled #shadow_select_chat_popup {
+    z-index: 8500 !important;
+}
+
+html.fft-enabled #select_chat_popup {
+    border: 1px solid var(--fft-border) !important;
+    border-radius: 24px !important;
+    background: rgba(17, 28, 40, 0.98) !important;
+    box-shadow: 0 26px 80px rgba(0, 0, 0, 0.45) !important;
+    backdrop-filter: blur(var(--fft-blur));
+}
+
+html.fft-enabled #select_chat_div .select_chat_block_wrapper {
+    margin: 6px 0;
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* Reusable control states adapted from the reference theme without changing layout geometry. */
+html.fft-enabled :where(input, textarea, select, .text_pole, .select2-selection) {
+    transition: border-color var(--fft-speed) ease, background-color var(--fft-speed) ease, box-shadow var(--fft-speed) ease;
+}
+
+html.fft-enabled :where(input, textarea, select, .text_pole, .select2-selection):hover {
+    border-color: rgba(255, 255, 255, 0.16);
+    background-color: rgba(255, 255, 255, 0.085);
+}
+
+html.fft-enabled :where(input[type="checkbox"], input[type="radio"], input[type="range"]) {
+    accent-color: var(--fft-accent);
+}
+
+html.fft-enabled input[type="range"] {
+    border-radius: 999px;
+    filter: none;
+}
+
+html.fft-enabled :where(.menu_button, .menu_button_default, .popup-button-ok, .right_menu_button):not(.drawer-icon) {
+    border: 1px solid rgba(255, 255, 255, 0.075);
+    color: var(--fft-text);
+    background-color: rgba(255, 255, 255, 0.055);
+    box-shadow: inset 0 1px rgba(255, 255, 255, 0.035);
+    transition: color var(--fft-speed) ease, border-color var(--fft-speed) ease, background-color var(--fft-speed) ease, transform 100ms ease;
+}
+
+html.fft-enabled :where(.menu_button, .menu_button_default, .popup-button-ok, .right_menu_button):not(.drawer-icon):hover {
+    border-color: rgba(51, 144, 236, 0.3);
+    color: #fff;
+    background-color: rgba(51, 144, 236, 0.16);
+}
+
+html.fft-enabled :where(.menu_button, .menu_button_default, .popup-button-ok, .right_menu_button):not(.drawer-icon):active {
+    transform: scale(0.97);
+}
+
+html.fft-enabled :where(.redWarningBG, #ddelete_button, #dialogue_del_mes_ok) {
+    border-color: rgba(255, 107, 120, 0.3) !important;
+    color: #ffd8dc !important;
+    background: rgba(214, 64, 79, 0.2) !important;
+}
+
+/* Dropdowns, tags and searchable selects. */
+html.fft-enabled :where(.select2-dropdown, .select2-results, .select2-selection, .list-group, .options-content, #extensionsMenu, #quickPersonaMenu) {
+    border: 1px solid var(--fft-border) !important;
+    color: var(--fft-text) !important;
+    background: rgba(20, 32, 45, 0.98) !important;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.34);
+    backdrop-filter: blur(var(--fft-blur));
+    -webkit-backdrop-filter: blur(var(--fft-blur));
+}
+
+html.fft-enabled :where(.select2-dropdown, .list-group, .options-content, #extensionsMenu, #quickPersonaMenu) {
+    overflow-x: hidden;
+    border-radius: 15px !important;
+}
+
+html.fft-enabled :where(.select2-results__option, .list-group-item, .options-content > a, #extensionsMenu > div) {
+    border-radius: 10px;
+    transition: background-color var(--fft-speed) ease, color var(--fft-speed) ease;
+}
+
+html.fft-enabled :where(.select2-results__option, .list-group-item, .options-content > a, #extensionsMenu > div):hover,
+html.fft-enabled .select2-results__option--highlighted {
+    color: #fff !important;
+    background: rgba(51, 144, 236, 0.17) !important;
+}
+
+html.fft-enabled :where(.select2-selection__choice, .tag) {
+    border: 1px solid rgba(51, 144, 236, 0.25) !important;
+    border-radius: 999px !important;
+    color: #dceeff !important;
+    background: rgba(51, 144, 236, 0.14) !important;
+}
+
+/* Lorebooks, prompt manager, extension sections and preset rows share one card language. */
+html.fft-enabled :where(.world_entry, .wi-card-entry, #completion_prompt_manager_list li.completion_prompt_manager_prompt, .extension_container, .preset-manager-container, .range-block) {
+    border: 1px solid rgba(255, 255, 255, 0.075) !important;
+    border-radius: 15px !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    box-shadow: inset 0 1px rgba(255, 255, 255, 0.035) !important;
+    transition: border-color var(--fft-speed) ease, background-color var(--fft-speed) ease;
+}
+
+html.fft-enabled :where(.world_entry, .wi-card-entry, #completion_prompt_manager_list li.completion_prompt_manager_prompt, .extension_container, .preset-manager-container):hover {
+    border-color: rgba(51, 144, 236, 0.22) !important;
+    background: rgba(255, 255, 255, 0.055) !important;
+}
+
+html.fft-enabled #completion_prompt_manager_list li.completion_prompt_manager_prompt_disabled {
+    opacity: 0.52;
+}
+
+/* Quick Reply remains lightweight and does not alter its placement or wrapping. */
+html.fft-enabled :where(#qr--bar, #qr--popout) .qr--button {
+    border: 1px solid rgba(255, 255, 255, 0.09) !important;
+    border-radius: 11px !important;
+    color: var(--fft-text) !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    box-shadow: inset 0 1px rgba(255, 255, 255, 0.035);
+}
+
+html.fft-enabled :where(#qr--bar, #qr--popout) .qr--button:hover {
+    border-color: rgba(51, 144, 236, 0.3) !important;
+    background: rgba(51, 144, 236, 0.17) !important;
+}
+
+/* Media cards, character rows and notifications. */
+html.fft-enabled .bg_example {
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 5px 18px rgba(0, 0, 0, 0.2) !important;
+    transition: border-color var(--fft-speed) ease, transform var(--fft-speed) ease, box-shadow var(--fft-speed) ease;
+}
+
+html.fft-enabled .bg_example:hover {
+    border-color: rgba(51, 144, 236, 0.42) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 9px 24px rgba(0, 0, 0, 0.27) !important;
+}
+
+html.fft-enabled :where(.character_select, .avatar-container) {
+    border-radius: 13px;
+    transition: background-color var(--fft-speed) ease;
+}
+
+html.fft-enabled :where(.character_select, .avatar-container):hover {
+    background-color: rgba(51, 144, 236, 0.11);
+}
+
+html.fft-enabled #toast-container > div {
+    border: 1px solid rgba(255, 255, 255, 0.13) !important;
+    border-radius: 15px !important;
+    color: var(--fft-text) !important;
+    background: rgba(20, 32, 45, 0.95) !important;
+    box-shadow: 0 15px 44px rgba(0, 0, 0, 0.38) !important;
+    backdrop-filter: blur(var(--fft-blur));
+    -webkit-backdrop-filter: blur(var(--fft-blur));
+}
+
+html.fft-enabled body > .ctx-blocker > ul {
+    overflow-x: hidden;
+    overflow-y: auto;
+    border: 1px solid var(--fft-border) !important;
+    border-radius: 15px !important;
+    color: var(--fft-text) !important;
+    background: rgba(20, 32, 45, 0.98) !important;
+    box-shadow: 0 18px 52px rgba(0, 0, 0, 0.42) !important;
+    backdrop-filter: blur(var(--fft-blur));
+}
+
+@media screen and (max-width: 1000px) {
+    #fft_context_panel {
+        display: none !important;
+    }
+
+    html.fft-enabled .drawer-content.openDrawer,
+    html.fft-enabled :where(dialog.popup, .popup, .options-content) {
+        border-radius: 22px 22px 0 0;
+        background: rgba(17, 28, 40, 0.98);
+    }
+}
