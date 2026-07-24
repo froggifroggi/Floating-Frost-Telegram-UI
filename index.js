@@ -1,11 +1,12 @@
 import { extension_settings, getContext } from '../../../extensions.js';
-import { saveSettingsDebounced } from '../../../../script.js';
-import { openGroupById, openGroupChat } from '../../../group-chats.js';
+import { saveSettingsDebounced, updateRemoteChatName } from '../../../../script.js';
+import { editGroup, openGroupById, openGroupChat } from '../../../group-chats.js';
 
 const EXTENSION_PATH = new URL('.', import.meta.url).pathname.replace(/\/$/, '');
 const EXTENSION_NAME = EXTENSION_PATH.replace(/^\/scripts\/extensions\//, '');
 const ROOT_CLASS = 'fft-enabled';
 const ASSET_REVISION = '0.9.17';
+const RECENT_CHATS_MIN_INTERVAL = 30_000;
 
 const defaults = Object.freeze({
     enabled: true,
@@ -27,51 +28,81 @@ let recentChats = [];
 let mobileScreen = 'chats';
 let recentChatsLoadTimer = 0;
 let interfaceRefreshFrame = 0;
+let viewportMetricsFrame = 0;
+let chatListRenderTimer = 0;
+let lastViewportHeight = -1;
+let activeLayout = 'none';
+let recentChatsLastLoad = 0;
 const mobileMedia = window.matchMedia('(max-width: 1000px)');
+const defaultEntries = Object.entries(defaults);
+let chatElement = null;
 
+// #chat живёт столько же, сколько страница, но кэш всё равно проверяем на отсоединение.
+function getChatElement() {
+    if (!chatElement?.isConnected) chatElement = document.querySelector('body > #sheld > #chat');
+    return chatElement;
+}
+
+/*
+ * Запись кастомного свойства в documentElement инвалидирует наследуемые
+ * свойства по всему дереву, а обработчик висит на visualViewport resize/scroll
+ * и window resize — то есть на потоке событий скролла. Поэтому: запись только
+ * при реально изменившейся высоте и не чаще одного раза за кадр.
+ * Свойство --fft-keyboard-inset убрано: в style.css оно не использовалось ни разу.
+ */
 function updateViewportMetrics() {
-    const viewport = window.visualViewport;
-    const height = viewport?.height || window.innerHeight;
-    const keyboardInset = Math.max(0, window.innerHeight - height - (viewport?.offsetTop || 0));
-    document.documentElement.style.setProperty('--fft-viewport-height', `${height}px`);
-    document.documentElement.style.setProperty('--fft-keyboard-inset', `${keyboardInset}px`);
+    if (viewportMetricsFrame) return;
+    viewportMetricsFrame = requestAnimationFrame(() => {
+        viewportMetricsFrame = 0;
+        const height = Math.round(window.visualViewport?.height || window.innerHeight);
+        if (height === lastViewportHeight) return;
+        lastViewportHeight = height;
+        document.documentElement.style.setProperty('--fft-viewport-height', `${height}px`);
+    });
 }
 
 function settings() {
     extension_settings[EXTENSION_NAME] ??= {};
     const current = extension_settings[EXTENSION_NAME];
-    for (const [key, value] of Object.entries(defaults)) {
+    // Object.entries(defaults) вынесен из функции: settings() зовётся на каждое сообщение.
+    for (const [key, value] of defaultEntries) {
         current[key] ??= value;
     }
     return current;
 }
 
-function refreshExtensionStylesheet() {
-    const expectedPath = `${EXTENSION_PATH}/style.css`;
-    const link = [...document.querySelectorAll('link[rel="stylesheet"]')]
-        .find(candidate => new URL(candidate.href, window.location.href).pathname === expectedPath);
-    if (!(link instanceof HTMLLinkElement)) return;
-    const url = new URL(link.href, window.location.href);
-    if (url.searchParams.get('fft') === ASSET_REVISION) return;
-    url.searchParams.set('fft', ASSET_REVISION);
-    link.href = url.href;
-}
+/*
+ * Здесь была refreshExtensionStylesheet(): она дописывала ?fft=<версия> к href
+ * уже загруженного <link>. Новый URL — промах кэша, поэтому каждая загрузка
+ * страницы скачивала и парсила style.css второй раз и получала лишний полный
+ * пересчёт стилей (плюс мигание неоформленного контента). Смысла в этом нет:
+ * SillyTavern раздаёт public через express.static с ETag и maxAge=0, так что
+ * свежесть файла браузер проверяет сам.
+ */
 
-function decorateMessage(element) {
+/*
+ * Идемпотентно и без лишних чтений DOM: раньше на каждый вызов безусловно
+ * писался атрибут data-fft-decorated (в CSS он не использовался) и делались
+ * три querySelector в arrangeMessageAvatar. applyState() зовёт это на все
+ * сообщения чата, в том числе на каждый кадр перетаскивания ползунка, так что
+ * повторный проход обязан быть бесплатным. Режим аватара передаётся аргументом,
+ * чтобы не дёргать settings() на каждое сообщение.
+ */
+function decorateMessage(element, mode) {
     if (!(element instanceof HTMLElement) || !element.matches('.mes')) return;
     element.classList.add('fft-message');
-    element.dataset.fftDecorated = 'true';
-    arrangeMessageAvatar(element);
+    if (element.dataset.fftAvatar === mode) return;
+    element.dataset.fftAvatar = mode;
+    arrangeMessageAvatar(element, mode);
 }
 
-function arrangeMessageAvatar(message) {
+function arrangeMessageAvatar(message, mode = settings().avatarMode) {
     const block = message.querySelector(':scope > .mes_block');
     const directWrapper = message.querySelector(':scope > .mesAvatarWrapper');
     const nestedWrapper = block?.querySelector(':scope > .mesAvatarWrapper[data-fft-reparented="true"]');
     const wrapper = directWrapper || nestedWrapper;
     if (!block || !wrapper) return;
 
-    const mode = settings().avatarMode;
     if (mode === 'wrap') {
         if (wrapper.parentElement !== block) block.prepend(wrapper);
         wrapper.dataset.fftReparented = 'true';
@@ -82,8 +113,16 @@ function arrangeMessageAvatar(message) {
     delete wrapper.dataset.fftReparented;
 }
 
-function decorateMessages(root = document) {
-    root.querySelectorAll?.('#chat .mes').forEach(decorateMessage);
+function decorateMessages(root = getChatElement()) {
+    if (!root) return;
+    const mode = settings().avatarMode;
+    // Сообщения — прямые дети #chat, поэтому обход поддерева не нужен.
+    for (const element of root.children) decorateMessage(element, mode);
+}
+
+function applyWallpaperDim(value = settings()) {
+    const dim = Math.max(0, Math.min(80, Number(value.wallpaperDim) || 0)) / 100;
+    document.documentElement.style.setProperty('--fft-wallpaper-dim', String(dim));
 }
 
 function applyState() {
@@ -92,8 +131,10 @@ function applyState() {
     const useMobileLayout = value.autoLayout ? mobileMedia.matches : Boolean(value.mobileShell && !value.desktopShell);
     const mobileActive = Boolean(value.enabled && value.mobileShell && useMobileLayout);
     const desktopActive = Boolean(value.enabled && value.desktopShell && !useMobileLayout);
+    const nextLayout = desktopActive ? 'desktop' : (mobileActive ? 'mobile' : 'none');
+    const layoutChanged = activeLayout !== nextLayout;
+    activeLayout = nextLayout;
     root.classList.toggle(ROOT_CLASS, Boolean(value.enabled));
-    root.classList.remove('fft-no-motion', 'fft-mobile-effects');
     root.classList.toggle('fft-high-contrast', Boolean(value.highContrast));
     root.classList.toggle('fft-desktop-shell', desktopActive);
     root.classList.toggle('fft-desktop-active', desktopActive);
@@ -102,10 +143,20 @@ function applyState() {
     root.dataset.fftDensity = value.density;
     root.dataset.fftTheme = value.theme;
     root.dataset.fftAvatarMode = ['hidden', 'top', 'wrap'].includes(value.avatarMode) ? value.avatarMode : 'hidden';
-    root.style.removeProperty('--fft-blur');
-    root.style.setProperty('--fft-wallpaper-dim', String(Math.max(0, Math.min(80, Number(value.wallpaperDim) || 0)) / 100));
-    if (value.enabled) decorateMessages();
+    applyWallpaperDim(value);
+    if (value.enabled) {
+        decorateMessages();
+        observeMessages();
+    } else {
+        disconnectMessageObserver();
+    }
     updateMobileShell();
+    if (layoutChanged && desktopActive) renderChatList();
+    /*
+     * Убраны две мёртвые операции: снятие классов fft-no-motion/fft-mobile-effects
+     * (их никто не выставляет) и removeProperty('--fft-blur') (инлайновым это
+     * свойство не задаётся, значение всегда приходит из :root в style.css).
+     */
 }
 
 function syncControls() {
@@ -121,9 +172,20 @@ function syncControls() {
     $('#fft_avatar_mode').val(value.avatarMode);
 }
 
+/*
+ * Настройки, которым достаточно записи одной CSS-переменной. Затемнение фона
+ * сидит на <input type="range"> с событием 'input', то есть сыплется покадрово
+ * при перетаскивании. Полный applyState() обходил при этом все сообщения чата
+ * и перерисовывал мобильную оболочку — на длинном чате это кадры по десяткам
+ * миллисекунд на каждое движение ползунка.
+ */
+const cheapSettingAppliers = { wallpaperDim: applyWallpaperDim };
+
 function updateSetting(key, value) {
     settings()[key] = value;
-    applyState();
+    const applyCheap = cheapSettingAppliers[key];
+    if (applyCheap) applyCheap();
+    else applyState();
     saveSettingsDebounced();
 }
 
@@ -137,9 +199,8 @@ function resetExtensionSettings() {
     saveSettingsDebounced();
 }
 
-function clickVisible(selector) {
-    const target = [...document.querySelectorAll(selector)].find(element => element.getClientRects().length > 0);
-    target?.click();
+function clickElement(selector) {
+    document.querySelector(selector)?.click();
 }
 
 function clickNativeOption(selector) {
@@ -148,7 +209,8 @@ function clickNativeOption(selector) {
 }
 
 function getLiveDrawer(selector) {
-    return [...document.querySelectorAll(selector)].find(element => element.closest('#top-settings-holder')?.parentElement === document.body);
+    const panel = document.querySelector(selector);
+    return panel?.closest('#top-settings-holder')?.parentElement === document.body ? panel : null;
 }
 
 function setLiveDrawerState(panel, open, icon = null) {
@@ -168,7 +230,7 @@ function setLiveDrawerState(panel, open, icon = null) {
 function toggleLiveDrawer(panelSelector, iconSelector) {
     const panel = getLiveDrawer(panelSelector);
     if (!panel) return;
-    const icon = [...document.querySelectorAll(iconSelector)].find(element => element.getClientRects().length > 0);
+    const icon = document.querySelector(iconSelector);
     setLiveDrawerState(panel, !panel.classList.contains('openDrawer'), icon);
 }
 
@@ -253,7 +315,7 @@ function createDesktopHeader() {
         const button = event.target.closest('[data-fft-action]');
         if (!button) return;
         if (button.dataset.fftAction === 'search') {
-            clickVisible('#rm_button_search');
+            clickElement('#rm_button_search');
             requestAnimationFrame(() => document.querySelector('#character_search_bar')?.focus());
         }
         if (button.dataset.fftAction === 'authors-note') clickNativeOption('#option_toggle_AN');
@@ -276,16 +338,32 @@ function getRecentChatKey(chat) {
     return `${chat.group ? `group_${chat.group}` : ''}${chat.avatar ? `char_${chat.avatar}` : ''}_${chat.file_name}`;
 }
 
-function normalizeRecentChat(chat) {
-    const { characters, groups, getThumbnailUrl, timestampToMoment } = getContext();
-    const character = characters.find(item => item?.avatar === chat.avatar);
-    const group = groups.find(item => String(item?.id) === String(chat.group));
+/*
+ * Индексы для разбора пачки чатов. Раньше normalizeRecentChat на каждый чат
+ * делал characters.find + groups.find (O(чаты x персонажи): 100 чатов на
+ * библиотеку в 800 персонажей — под 80 000 сравнений) и заново парсил JSON
+ * закреплённых чатов. Теперь всё это считается один раз на загрузку.
+ */
+function createRecentChatIndex() {
+    const { characters, groups } = getContext();
+    const charactersByAvatar = new Map();
+    for (const item of characters) if (item?.avatar) charactersByAvatar.set(item.avatar, item);
+    const groupsById = new Map();
+    for (const item of groups) if (item?.id !== undefined) groupsById.set(String(item.id), item);
+    return { charactersByAvatar, groupsById, pinned: getPinnedChats() };
+}
+
+function normalizeRecentChat(chat, index) {
+    const { getThumbnailUrl, timestampToMoment } = getContext();
+    const character = index.charactersByAvatar.get(chat.avatar);
+    const group = index.groupsById.get(String(chat.group));
     const fileName = String(chat.file_name || '').replace(/\.jsonl$/i, '');
     const fallbackParts = fileName.split(' - ');
     const timestamp = timestampToMoment(chat.last_mes);
     const resolvedName = character?.name || group?.name || fallbackParts.shift() || fileName || 'Диалог';
     const labelPrefix = `${resolvedName} - `;
     return {
+        key: getRecentChatKey(chat),
         avatar: String(chat.avatar || ''),
         group: String(chat.group || ''),
         fileName,
@@ -297,15 +375,31 @@ function normalizeRecentChat(chat) {
         dateLong: timestamp?.isValid?.() ? timestamp.format('LL LT') : '',
         messageCount: Number(chat.chat_items || 0),
         fileSize: String(chat.file_size || ''),
-        pinned: Object.hasOwn(getPinnedChats(), getRecentChatKey(chat)),
+        pinned: Object.hasOwn(index.pinned, getRecentChatKey(chat)),
     };
+}
+
+function getActiveRecentChat(context = getContext()) {
+    const chatId = context.getCurrentChatId();
+    if (!chatId) return undefined;
+    const groupId = context.groupId;
+    const avatar = context.characters?.[context.characterId]?.avatar;
+    return recentChats.find(chat => String(chat.fileName) === String(chatId)
+        && (groupId ? String(chat.group) === String(groupId) : chat.avatar === avatar));
+}
+
+function updateActiveChatListItem() {
+    const activeKey = getActiveRecentChat()?.key;
+    document.querySelectorAll('#fft_chat_list_items [data-chat-key]').forEach(item => {
+        item.classList.toggle('active', item.dataset.chatKey === activeKey);
+    });
 }
 
 function updateContextPanel() {
     const panel = document.querySelector('#fft_context_panel');
     if (!panel) return;
     const context = getContext();
-    const active = recentChats.find(chat => String(chat.fileName) === String(context.getCurrentChatId()));
+    const active = getActiveRecentChat(context);
     const character = context.characters?.[context.characterId];
     const name = active?.name || character?.name || 'SillyTavern';
     const image = panel.querySelector('.fft-context-avatar');
@@ -416,7 +510,7 @@ function updateMobileShell() {
     const menu = shell.querySelector('[data-fft-mobile="menu"]');
     const avatar = shell.querySelector('.fft-mobile-avatar');
     const character = context.characters?.[context.characterId];
-    const activeChat = recentChats.find(chat => String(chat.fileName) === String(context.getCurrentChatId()));
+    const activeChat = getActiveRecentChat(context);
 
     back.hidden = mobileScreen === 'chats';
     menu.hidden = !isChat;
@@ -431,7 +525,7 @@ function updateMobileShell() {
     shell.querySelector('.fft-mobile-tools-screen').hidden = mobileScreen !== 'tools';
     shell.querySelector('.fft-mobile-nav').hidden = isChat;
     if (mobileScreen === 'chats') renderMobileChatList();
-    if (mobileScreen === 'tools') renderMobileTools();
+    if (mobileScreen === 'tools') renderMobileToolGrid();
     updateMobileNavState();
 }
 
@@ -439,8 +533,10 @@ function createMobileChatListItem(chat) {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'fft-mobile-chat-item';
+    button.dataset.chatKey = chat.key;
+    button.dataset.chatFile = chat.fileName;
     button.innerHTML = `
-        <img class="fft-mobile-chat-avatar" alt="">
+        <img class="fft-mobile-chat-avatar" alt="" loading="lazy" decoding="async">
         <span class="fft-mobile-chat-copy">
             <span class="fft-mobile-chat-line"><strong></strong><time></time></span>
             <span class="fft-mobile-chat-line fft-mobile-chat-meta"><small></small><span></span></span>
@@ -450,15 +546,11 @@ function createMobileChatListItem(chat) {
     button.querySelector('time').textContent = chat.dateShort;
     button.querySelector('small').textContent = chat.label;
     button.querySelector('.fft-mobile-chat-meta span').textContent = `${chat.pinned ? '●  ' : ''}${chat.messageCount}`;
-    button.addEventListener('click', async () => {
-        setMobileScreen('chat');
-        await openExistingChat(chat);
-    });
     return button;
 }
 
 function renderMobileChatList() {
-    if (mobileScreen !== 'chats') return;
+    if (mobileScreen !== 'chats' || activeLayout !== 'mobile') return;
     const list = document.querySelector('#fft_mobile_chat_list');
     if (!list) return;
     const query = chatListQuery.trim().toLocaleLowerCase();
@@ -494,68 +586,101 @@ function collectMobileTools() {
 
     const allTools = [...drawerTools, ...nativeTools];
     const order = settings().toolOrder;
+    const positions = new Map(order.map((key, index) => [key, index]));
     return allTools.sort((a, b) => {
-        const aIndex = order.indexOf(a.key);
-        const bIndex = order.indexOf(b.key);
-        return (aIndex < 0 ? Number.MAX_SAFE_INTEGER : aIndex) - (bIndex < 0 ? Number.MAX_SAFE_INTEGER : bIndex);
+        const aIndex = positions.get(a.key) ?? Number.MAX_SAFE_INTEGER;
+        const bIndex = positions.get(b.key) ?? Number.MAX_SAFE_INTEGER;
+        return aIndex - bIndex;
     });
 }
 
 function createMobileToolButton(tool) {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.dataset.fftToolKey = tool.key;
-        if (tool.drawer) button.dataset.fftDrawer = tool.drawer;
-        if (tool.native) button.dataset.fftNative = tool.native;
-        if (tool.iconMarkup) {
-            button.innerHTML = `${tool.iconMarkup}<span></span>`;
-        } else {
-            const icon = document.createElement('i');
-            icon.className = tool.iconClasses;
-            button.append(icon, document.createElement('span'));
-        }
-        button.querySelector('span').textContent = tool.label;
-        return button;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.fftToolKey = tool.key;
+    if (tool.drawer) button.dataset.fftDrawer = tool.drawer;
+    if (tool.native) button.dataset.fftNative = tool.native;
+    if (tool.iconMarkup) {
+        button.innerHTML = `${tool.iconMarkup}<span></span>`;
+    } else {
+        const icon = document.createElement('i');
+        icon.className = tool.iconClasses;
+        button.append(icon, document.createElement('span'));
+    }
+    button.querySelector('span').textContent = tool.label;
+    return button;
+}
+
+function renderMobileToolGrid(tools = collectMobileTools()) {
+    const grid = document.querySelector('#fft_mobile_tool_grid');
+    if (!grid) return;
+    const hidden = new Set(settings().hiddenTools);
+    grid.replaceChildren(...tools.filter(tool => !hidden.has(tool.key)).map(createMobileToolButton));
+}
+
+function updateToolPreferenceButtons(container) {
+    const rows = [...container.querySelectorAll('.fft-tool-preference')];
+    rows.forEach((row, index) => {
+        row.querySelector('[data-fft-move="-1"]').disabled = index === 0;
+        row.querySelector('[data-fft-move="1"]').disabled = index === rows.length - 1;
+    });
 }
 
 function renderToolPreferences(tools = collectMobileTools()) {
     const container = document.querySelector('#fft_tool_preferences');
     if (!container) return;
     const hidden = settings().hiddenTools;
-    container.replaceChildren(...tools.map((tool, index) => {
+    container.replaceChildren(...tools.map(tool => {
         const row = document.createElement('div');
         row.className = 'fft-tool-preference';
-        row.innerHTML = `<label><input type="checkbox"><span></span></label><span class="fft-tool-order"><button type="button" aria-label="Выше">↑</button><button type="button" aria-label="Ниже">↓</button></span>`;
+        row.dataset.fftToolKey = tool.key;
+        row.innerHTML = `<label><input type="checkbox"><span></span></label><span class="fft-tool-order"><button type="button" data-fft-move="-1" aria-label="Выше">↑</button><button type="button" data-fft-move="1" aria-label="Ниже">↓</button></span>`;
         const checkbox = row.querySelector('input');
         checkbox.checked = !hidden.includes(tool.key);
+        checkbox.dataset.fftToolKey = tool.key;
         row.querySelector('label span').textContent = tool.label;
-        checkbox.addEventListener('change', () => {
-            settings().hiddenTools = checkbox.checked ? hidden.filter(key => key !== tool.key) : [...new Set([...hidden, tool.key])];
-            renderMobileTools();
-            saveSettingsDebounced();
-        });
-        const move = direction => {
-            const keys = tools.map(item => item.key);
-            const target = index + direction;
-            if (target < 0 || target >= keys.length) return;
-            [keys[index], keys[target]] = [keys[target], keys[index]];
-            settings().toolOrder = keys;
-            renderMobileTools();
-            saveSettingsDebounced();
-        };
-        row.querySelector('[aria-label="Выше"]').addEventListener('click', () => move(-1));
-        row.querySelector('[aria-label="Ниже"]').addEventListener('click', () => move(1));
         return row;
     }));
+    updateToolPreferenceButtons(container);
+}
+
+function bindToolPreferences() {
+    const container = document.querySelector('#fft_tool_preferences');
+    if (!container || container.dataset.fftBound === 'true') return;
+    container.dataset.fftBound = 'true';
+    container.addEventListener('change', event => {
+        if (!(event.target instanceof Element)) return;
+        const checkbox = event.target.closest('input[data-fft-tool-key]');
+        if (!(checkbox instanceof HTMLInputElement)) return;
+        const hidden = new Set(settings().hiddenTools);
+        if (checkbox.checked) hidden.delete(checkbox.dataset.fftToolKey);
+        else hidden.add(checkbox.dataset.fftToolKey);
+        settings().hiddenTools = [...hidden];
+        renderMobileToolGrid();
+        saveSettingsDebounced();
+    });
+    container.addEventListener('click', event => {
+        if (!(event.target instanceof Element)) return;
+        const button = event.target.closest('button[data-fft-move]');
+        const row = button?.closest('.fft-tool-preference');
+        if (!button || !row) return;
+        const tools = collectMobileTools();
+        const index = tools.findIndex(tool => tool.key === row.dataset.fftToolKey);
+        const target = index + Number(button.dataset.fftMove);
+        if (index < 0 || target < 0 || target >= tools.length) return;
+        [tools[index], tools[target]] = [tools[target], tools[index]];
+        settings().toolOrder = tools.map(tool => tool.key);
+        if (target < index) container.insertBefore(row, row.previousElementSibling);
+        else container.insertBefore(row.nextElementSibling, row);
+        updateToolPreferenceButtons(container);
+        renderMobileToolGrid(tools);
+        saveSettingsDebounced();
+    });
 }
 
 function renderMobileTools() {
-    const grid = document.querySelector('#fft_mobile_tool_grid');
-    if (!grid) return;
     const tools = collectMobileTools();
-    const hidden = settings().hiddenTools;
-
-    grid.replaceChildren(...tools.filter(tool => !hidden.includes(tool.key)).map(createMobileToolButton));
+    renderMobileToolGrid(tools);
     renderToolPreferences(tools);
 }
 
@@ -589,16 +714,16 @@ function createMobileShell() {
     document.body.append(shell);
 
     shell.querySelector('.fft-mobile-search input').addEventListener('input', event => {
-        chatListQuery = event.currentTarget.value;
-        renderMobileChatList();
+        updateChatListQuery(event.currentTarget);
     });
+    shell.querySelector('#fft_mobile_chat_list').addEventListener('click', event => void openChatFromList(event, true));
     shell.addEventListener('click', event => {
         const action = event.target.closest('[data-fft-mobile]')?.dataset.fftMobile;
         const drawer = event.target.closest('[data-fft-drawer]')?.dataset.fftDrawer;
         const native = event.target.closest('[data-fft-native]')?.dataset.fftNative;
         if (action === 'back' || action === 'chats') setMobileScreen('chats');
         if (action === 'tools') setMobileScreen('tools');
-        if (action === 'menu') clickVisible('#options_button');
+        if (action === 'menu') clickElement('#options_button');
         if (drawer) openMobileDrawer(drawer);
         if (native) clickNativeOption(native);
     });
@@ -611,51 +736,162 @@ function createMobileShell() {
     updateMobileShell();
 }
 
-async function loadRecentChats() {
-    const { getRequestHeaders } = getContext();
-    const pinned = Object.values(getPinnedChats());
-    try {
-        const response = await fetch('/api/chats/recent', {
-            method: 'POST',
-            headers: getRequestHeaders(),
-            body: JSON.stringify({ max: 100, pinned }),
-            cache: 'no-cache',
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-    recentChats = Array.isArray(data) ? data.map(normalizeRecentChat) : [];
-    } catch (error) {
-        console.warn('[Floating Frost] Failed to load recent chats.', error);
-        recentChats = [];
+/*
+ * /api/chats/recent — дорогой эндпоинт: он делает fs.stat на каждый файл чата
+ * каждого персонажа плюс все групповые, а затем читает сотню файлов. Поэтому
+ * здесь есть защита от параллельных запросов: без неё вызовы гнались наперегонки
+ * и ответ более раннего мог перезаписать результат более позднего.
+ */
+let recentChatsRequest = null;
+let recentChatsPending = false;
+let recentChatsPendingForce = false;
+
+async function loadRecentChats(force = false) {
+    if (!force && recentChatsLastLoad && Date.now() - recentChatsLastLoad < RECENT_CHATS_MIN_INTERVAL) {
+        renderVisibleChatList();
+        updateContextPanel();
+        return;
     }
-    renderChatList();
+    if (recentChatsRequest) {
+        // Обычный refresh покрывается текущим ответом; обязательный повторяем.
+        if (force) {
+            recentChatsPending = true;
+            recentChatsPendingForce = true;
+        }
+        return recentChatsRequest;
+    }
+    recentChatsRequest = (async () => {
+        const { getRequestHeaders } = getContext();
+        const pinned = Object.values(getPinnedChats());
+        try {
+            const response = await fetch('/api/chats/recent', {
+                method: 'POST',
+                headers: getRequestHeaders(),
+                body: JSON.stringify({ max: 100, pinned }),
+                cache: 'no-cache',
+            });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+            if (Array.isArray(data)) {
+                const index = createRecentChatIndex();
+                recentChats = data.map(chat => normalizeRecentChat(chat, index));
+            } else {
+                recentChats = [];
+            }
+        } catch (error) {
+            console.warn('[Floating Frost] Failed to load recent chats.', error);
+            recentChats = [];
+        } finally {
+            recentChatsLastLoad = Date.now();
+        }
+    })();
+
+    try {
+        await recentChatsRequest;
+    } finally {
+        recentChatsRequest = null;
+    }
+    renderVisibleChatList();
     updateContextPanel();
+
+    if (recentChatsPending) {
+        const pendingForce = recentChatsPendingForce;
+        recentChatsPending = false;
+        recentChatsPendingForce = false;
+        scheduleRecentChatsLoad(600, pendingForce);
+    }
 }
 
-function scheduleRecentChatsLoad(delay = 120) {
+/*
+ * Срочные обновления схлопываются за 600 мс, обычные откладываются на 1.5 с и
+ * получают 30-секундный TTL. Без него каждое переключение чата запускало полный
+ * обход каталога на сервере, хотя активную строку можно обновить без запроса.
+ */
+function scheduleRecentChatsLoad(delay = 1500, force = false) {
     window.clearTimeout(recentChatsLoadTimer);
-    recentChatsLoadTimer = window.setTimeout(() => void loadRecentChats(), delay);
+    const elapsed = Date.now() - recentChatsLastLoad;
+    const cacheDelay = !force && recentChatsLastLoad ? Math.max(0, RECENT_CHATS_MIN_INTERVAL - elapsed) : 0;
+    recentChatsLoadTimer = window.setTimeout(() => void loadRecentChats(force), Math.max(delay, cacheDelay));
 }
 
 async function openExistingChat(chat) {
     const context = getContext();
+    /*
+     * Штатные selectCharacterById/openGroupById сначала открывают сохранённый
+     * последний чат сущности. Если затем вызвать open*Chat для нужного файла,
+     * два больших JSONL читаются и рендерятся последовательно. Подставляем
+     * целевой файл перед выбором сущности и сохраняем выбор после одной загрузки.
+     */
     if (chat.group) {
-        await openGroupById(chat.group);
-        if (context.getCurrentChatId() !== chat.fileName) await openGroupChat(chat.group, chat.fileName);
+        if (String(context.groupId) === String(chat.group)) {
+            if (context.getCurrentChatId() !== chat.fileName) await openGroupChat(chat.group, chat.fileName);
+            return;
+        }
+        const group = context.groups.find(item => String(item?.id) === String(chat.group));
+        if (!group) return;
+        const previousChatId = group.chat_id;
+        group.chat_id = chat.fileName;
+        let opened;
+        try {
+            opened = await openGroupById(chat.group);
+        } catch (error) {
+            group.chat_id = previousChatId;
+            throw error;
+        }
+        const current = getContext();
+        if (!opened || String(current.groupId) !== String(chat.group)) {
+            group.chat_id = previousChatId;
+            return;
+        }
+        await editGroup(chat.group, true, false);
         return;
     }
     const characterId = context.characters.findIndex(item => item?.avatar === chat.avatar);
     if (characterId < 0) return;
-    await context.selectCharacterById(characterId, { switchMenu: false });
-    if (getContext().getCurrentChatId() !== chat.fileName) await getContext().openCharacterChat(chat.fileName);
+    if (String(context.characterId) === String(characterId) && !context.groupId) {
+        if (context.getCurrentChatId() !== chat.fileName) await context.openCharacterChat(chat.fileName);
+        return;
+    }
+    const character = context.characters[characterId];
+    const previousChatId = character.chat;
+    character.chat = chat.fileName;
+    try {
+        await context.selectCharacterById(characterId, { switchMenu: false });
+    } catch (error) {
+        character.chat = previousChatId;
+        throw error;
+    }
+    const current = getContext();
+    if (String(current.characterId) !== String(characterId) || current.groupId) {
+        character.chat = previousChatId;
+        return;
+    }
+    await updateRemoteChatName(characterId, chat.fileName);
 }
 
-function createChatListItem(chat) {
-    const activeChatId = getContext().getCurrentChatId();
+async function openChatFromList(event, mobile) {
+    if (!(event.target instanceof Element)) return;
+    const button = event.target.closest('[data-chat-key]');
+    if (!(button instanceof HTMLButtonElement)) return;
+    const chat = recentChats.find(item => item.key === button.dataset.chatKey);
+    if (!chat) return;
+    if (mobile) setMobileScreen('chat');
+    button.disabled = true;
+    try {
+        await openExistingChat(chat);
+    } catch (error) {
+        console.warn('[Floating Frost] Failed to open chat.', error);
+    } finally {
+        if (button.isConnected) button.disabled = false;
+    }
+}
+
+function createChatListItem(chat, activeKey) {
     const item = document.createElement('button');
     item.type = 'button';
     item.className = 'fft-chat-list-item';
-    item.classList.toggle('active', String(chat.fileName) === String(activeChatId));
+    item.classList.toggle('active', chat.key === activeKey);
+    item.dataset.chatKey = chat.key;
     item.dataset.chatFile = chat.fileName;
     item.title = chat.dateLong;
 
@@ -663,6 +899,7 @@ function createChatListItem(chat) {
     avatar.className = 'fft-chat-list-avatar';
     avatar.alt = '';
     avatar.loading = 'lazy';
+    avatar.decoding = 'async';
     avatar.src = chat.thumbnail;
 
     const copy = document.createElement('span');
@@ -698,27 +935,36 @@ function createChatListItem(chat) {
     bottom.append(preview, meta);
     copy.append(top, bottom);
     item.append(avatar, copy);
-    item.addEventListener('click', () => void openExistingChat(chat));
     return item;
 }
 
 function renderChatList() {
     const list = document.querySelector('#fft_chat_list_items');
-    if (!list) return;
-    if (!document.documentElement.classList.contains('fft-desktop-active')) {
-        renderMobileChatList();
-        return;
-    }
+    if (!list || activeLayout !== 'desktop') return;
     const query = chatListQuery.trim().toLocaleLowerCase();
     const entries = recentChats.filter(chat => !query || `${chat.name} ${chat.fileName}`.toLocaleLowerCase().includes(query));
-    list.replaceChildren(...entries.map(createChatListItem));
+    const activeKey = getActiveRecentChat()?.key;
+    list.replaceChildren(...entries.map(chat => createChatListItem(chat, activeKey)));
     if (!entries.length) {
         const empty = document.createElement('div');
         empty.className = 'fft-chat-list-empty';
         empty.textContent = 'Ничего не найдено';
         list.append(empty);
     }
-    if (mobileScreen === 'chats') renderMobileChatList();
+}
+
+function renderVisibleChatList() {
+    if (activeLayout === 'desktop') renderChatList();
+    if (activeLayout === 'mobile') renderMobileChatList();
+}
+
+function updateChatListQuery(input) {
+    chatListQuery = input.value;
+    document.querySelectorAll('#fft_chat_list input[type="search"], .fft-mobile-search input').forEach(other => {
+        if (other !== input && other.value !== chatListQuery) other.value = chatListQuery;
+    });
+    window.clearTimeout(chatListRenderTimer);
+    chatListRenderTimer = window.setTimeout(renderVisibleChatList, 180);
 }
 
 function createPersistentChatList() {
@@ -737,27 +983,50 @@ function createPersistentChatList() {
         <div id="fft_chat_list_items"></div>`;
     document.body.append(aside);
     aside.querySelector('input').addEventListener('input', event => {
-        chatListQuery = event.currentTarget.value;
-        renderChatList();
+        updateChatListQuery(event.currentTarget);
     });
+    aside.querySelector('#fft_chat_list_items').addEventListener('click', event => void openChatFromList(event, false));
     aside.querySelector('.fft-chat-list-add').addEventListener('click', () => toggleLiveDrawer('#right-nav-panel', '#rightNavDrawerIcon'));
-    scheduleRecentChatsLoad();
+    scheduleRecentChatsLoad(600, true);
 }
 
+/*
+ * Наблюдение ведётся только за прямыми детьми #chat.
+ *
+ * Раньше стояло { childList: true, subtree: true }, и на каждый добавленный
+ * узел вызывался querySelectorAll('#chat .mes'). При стриминге SillyTavern
+ * переписывает mes_text.innerHTML на каждом чанке, порождая десятки addedNodes,
+ * а узлы внутри mes_text .mes содержать не могут — то есть весь этот обход был
+ * чистыми накладными расходами на самом горячем пути приложения. Сообщения
+ * добавляются прямо в #chat (script.js: chatElement.append(...)), так что
+ * subtree не нужен и расширение полностью уходит со стриминга.
+ *
+ * Анимация появления вешается только когда за одну пачку пришло ровно одно
+ * сообщение. Отрисовка истории и подгрузка «показать ещё» идут пачками, и
+ * анимировать их не нужно — раньше они запускали сотни анимаций разом.
+ */
 function observeMessages() {
-    const chat = document.querySelector('body > #sheld > #chat');
+    const chat = getChatElement();
     if (!chat || observer) return;
     observer = new MutationObserver(records => {
         if (!document.documentElement.classList.contains(ROOT_CLASS)) return;
+        const added = [];
         for (const record of records) {
             for (const node of record.addedNodes) {
-                if (!(node instanceof HTMLElement)) continue;
-                if (node.matches('.mes')) decorateMessage(node);
-                decorateMessages(node);
+                if (node instanceof HTMLElement && node.matches('.mes')) added.push(node);
             }
         }
+        if (!added.length) return;
+        const mode = settings().avatarMode;
+        for (const node of added) decorateMessage(node, mode);
+        if (added.length === 1) added[0].classList.add('fft-message-enter');
     });
-    observer.observe(chat, { childList: true, subtree: true });
+    observer.observe(chat, { childList: true });
+}
+
+function disconnectMessageObserver() {
+    observer?.disconnect();
+    observer = undefined;
 }
 
 function bindSillyTavernEvents() {
@@ -768,6 +1037,7 @@ function bindSillyTavernEvents() {
             interfaceRefreshFrame = 0;
             updateHeaderIdentity();
             updateContextPanel();
+            updateActiveChatListItem();
             updateMobileShell();
         });
     };
@@ -782,31 +1052,37 @@ function bindSillyTavernEvents() {
         eventTypes.CHARACTER_DUPLICATED,
     ].filter(Boolean).forEach(type => eventSource.on(type, () => {
         refreshInterface();
-        scheduleRecentChatsLoad();
+        scheduleRecentChatsLoad(600, true);
     }));
-    eventSource.on(eventTypes.APP_READY, () => scheduleRecentChatsLoad());
-    eventSource.on(eventTypes.CHARACTER_PAGE_LOADED, () => scheduleRecentChatsLoad());
+    eventSource.on(eventTypes.APP_READY, () => scheduleRecentChatsLoad(600, true));
     /*
-     * Message render/update events are intentionally handled only by the
-     * incremental MutationObserver. Rebuilding both chat lists for every
-     * loaded message caused quadratic work on long mobile chats.
+     * Подписка на CHARACTER_PAGE_LOADED снята намеренно. Это событие эмитится
+     * при любой перерисовке списка персонажей — смена страницы, фильтр по тегу,
+     * каждый дебаунснутый ввод в поиске персонажей, — а на нём висел вызов
+     * /api/chats/recent, который на сервере обходит stat-ом все файлы чатов.
+     * То есть набор текста в поиске персонажей превращался в серию полных
+     * сканов диска. Список недавних чатов от перелистывания страниц не меняется:
+     * его обновляют CHAT_CHANGED и события правки/удаления персонажа.
+     *
+     * События отрисовки сообщений по-прежнему обрабатывает только
+     * MutationObserver: перестройка обоих списков на каждое загруженное
+     * сообщение давала квадратичную работу на длинных мобильных чатах.
      */
 }
 
 jQuery(async () => {
-    refreshExtensionStylesheet();
     settings();
     const html = await $.get(`${EXTENSION_PATH}/settings.html?fft=${ASSET_REVISION}`);
     $('#extensions_settings2').append(html);
     syncControls();
     bindControls();
+    bindToolPreferences();
     createDesktopHeader();
     createPersistentChatList();
     createContextPanel();
     createMobileShell();
     bindLiveTopBar();
     bindSillyTavernEvents();
-    observeMessages();
     mobileMedia.addEventListener('change', applyState);
     window.visualViewport?.addEventListener('resize', updateViewportMetrics);
     window.visualViewport?.addEventListener('scroll', updateViewportMetrics);
