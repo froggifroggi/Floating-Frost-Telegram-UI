@@ -1003,6 +1003,12 @@ html.fft-enabled[data-fft-theme="glass"].fft-mobile-active[data-fft-mobile-scree
         z-index: 4400;
     }
 
+    /* Native and third-party drawers must replace the mobile shell, not open behind it. */
+    html.fft-mobile-active:has(body > #top-settings-holder .drawer-content.openDrawer) #fft_mobile_shell {
+        visibility: hidden;
+        pointer-events: none;
+    }
+
     html.fft-mobile-active #fft_mobile_shell svg {
         width: 23px;
         height: 23px;
@@ -1292,6 +1298,40 @@ html.fft-enabled[data-fft-theme="glass"].fft-mobile-active[data-fft-mobile-scree
     }
 
     html.fft-mobile-active #chat .mesAvatarWrapper {
+        display: flex !important;
+        width: 42px;
+        min-width: 42px;
+        height: 42px;
+        margin: 0 8px 0 0;
+        align-self: flex-end;
+        flex: 0 0 42px;
+    }
+
+    html.fft-mobile-active #chat .mesAvatarWrapper .avatar,
+    html.fft-mobile-active #chat .mesAvatarWrapper .avatar img {
+        width: 42px !important;
+        height: 42px !important;
+        min-width: 42px !important;
+        object-fit: cover;
+        border-radius: 50% !important;
+    }
+
+    html.fft-mobile-active body.big-avatars #chat .mesAvatarWrapper {
+        width: 58px;
+        min-width: 58px;
+        height: 72px;
+        flex-basis: 58px;
+    }
+
+    html.fft-mobile-active body.big-avatars #chat .mesAvatarWrapper .avatar,
+    html.fft-mobile-active body.big-avatars #chat .mesAvatarWrapper .avatar img {
+        width: 58px !important;
+        height: 72px !important;
+        min-width: 58px !important;
+        border-radius: 16px !important;
+    }
+
+    html.fft-mobile-active body.hideChatAvatars #chat .mesAvatarWrapper {
         display: none !important;
     }
 
@@ -1332,16 +1372,31 @@ html.fft-enabled[data-fft-theme="glass"].fft-mobile-active[data-fft-mobile-scree
     html.fft-enabled.fft-mobile-active #leftSendForm,
     html.fft-enabled.fft-mobile-active #rightSendForm {
         display: flex !important;
-        width: 82px !important;
-        min-width: 82px !important;
-        max-width: 82px !important;
         height: 40px !important;
-        flex: 0 0 82px !important;
         align-items: center;
         gap: 2px;
         overflow-x: auto !important;
         overflow-y: hidden !important;
         scrollbar-width: none;
+    }
+
+    html.fft-enabled.fft-mobile-active #leftSendForm {
+        width: auto !important;
+        min-width: 40px !important;
+        max-width: min(38dvw, 152px) !important;
+        flex: 0 1 auto !important;
+    }
+
+    html.fft-enabled.fft-mobile-active #rightSendForm {
+        width: 40px !important;
+        min-width: 40px !important;
+        max-width: 40px !important;
+        flex: 0 0 40px !important;
+    }
+
+    html.fft-enabled.fft-mobile-active #send_textarea {
+        min-width: 56px !important;
+        flex: 1 1 0 !important;
     }
 
     html.fft-enabled.fft-mobile-active :where(#leftSendForm, #rightSendForm)::-webkit-scrollbar {
