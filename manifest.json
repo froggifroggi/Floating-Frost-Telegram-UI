@@ -6,6 +6,6 @@
     "js": "index.js",
     "css": "style.css",
     "author": "Local",
-    "version": "0.9.15",
+    "version": "0.9.16",
     "description": "Adaptive Telegram-inspired glass interface for SillyTavern."
 }

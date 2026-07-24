@@ -2,10 +2,10 @@ import { extension_settings, getContext } from '../../../extensions.js';
 import { saveSettingsDebounced } from '../../../../script.js';
 import { openGroupById, openGroupChat } from '../../../group-chats.js';
 
-const EXTENSION_NAME = 'third-party/floating-frost-telegram';
-const EXTENSION_PATH = '/scripts/extensions/third-party/floating-frost-telegram';
+const EXTENSION_PATH = new URL('.', import.meta.url).pathname.replace(/\/$/, '');
+const EXTENSION_NAME = EXTENSION_PATH.replace(/^\/scripts\/extensions\//, '');
 const ROOT_CLASS = 'fft-enabled';
-const ASSET_REVISION = '0.9.15';
+const ASSET_REVISION = '0.9.16';
 
 const defaults = Object.freeze({
     enabled: true,
@@ -47,7 +47,9 @@ function settings() {
 }
 
 function refreshExtensionStylesheet() {
-    const link = document.querySelector('#third-party_floating-frost-telegram-css');
+    const expectedPath = `${EXTENSION_PATH}/style.css`;
+    const link = [...document.querySelectorAll('link[rel="stylesheet"]')]
+        .find(candidate => new URL(candidate.href, window.location.href).pathname === expectedPath);
     if (!(link instanceof HTMLLinkElement)) return;
     const url = new URL(link.href, window.location.href);
     if (url.searchParams.get('fft') === ASSET_REVISION) return;
