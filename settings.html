@@ -6,76 +6,90 @@
         </div>
         <div class="inline-drawer-content fft-settings-content">
             <label class="fft-setting-master" for="fft_enabled">
-                <span><strong>Интерфейс включён</strong><small>Telegram-подобная оболочка поверх SillyTavern</small></span>
+                <span><strong>Включить интерфейс</strong><small>Мобильная и компьютерная оболочка поверх SillyTavern</small></span>
                 <input id="fft_enabled" type="checkbox">
             </label>
 
             <section class="fft-settings-group">
-                <div class="fft-settings-heading"><i class="fa-solid fa-palette"></i><span>Оформление</span></div>
+                <div class="fft-settings-heading"><i class="fa-solid fa-palette"></i><span>Внешний вид</span></div>
                 <label class="fft-setting-row" for="fft_theme">
-                    <span><strong>Тема</strong><small>Тёмная, светлая или плотное стекло</small></span>
+                    <span><strong>Цветовая тема</strong><small>Готовая палитра или экспериментальная адаптация под импортированную CSS-тему</small></span>
                     <select id="fft_theme" class="text_pole">
                         <option value="dark">Тёмная</option>
                         <option value="light">Светлая</option>
                         <option value="glass">Стеклянная iOS</option>
+                        <option value="adaptive">Адаптивная</option>
                     </select>
-                </label>
-                <label class="fft-setting-row" for="fft_density">
-                    <span><strong>Сообщения</strong><small>Расстояние между пузырями</small></span>
-                    <select id="fft_density" class="text_pole">
-                        <option value="comfortable">Комфортно</option>
-                        <option value="compact">Компактно</option>
-                    </select>
-                </label>
-                <label class="fft-setting-slider" for="fft_blur">
-                    <span><strong>Размытие</strong><small>Интенсивность прозрачных поверхностей</small></span>
-                    <input id="fft_blur" type="range" min="0" max="28" step="1">
                 </label>
                 <label class="fft-setting-slider" for="fft_wallpaper_dim">
-                    <span><strong>Затемнение обоев</strong><small>Повышает читаемость на ярких изображениях</small></span>
+                    <span><strong>Затемнение фона</strong><small>Делает текст читаемее поверх ярких обоев</small></span>
                     <input id="fft_wallpaper_dim" type="range" min="0" max="80" step="1">
                 </label>
                 <label class="fft-setting-toggle" for="fft_high_contrast">
-                    <span><strong>Повышенный контраст</strong><small>Более плотные панели и пузыри</small></span>
+                    <span><strong>Повышенный контраст</strong><small>Более плотные панели, пузыри и границы</small></span>
                     <input id="fft_high_contrast" type="checkbox">
                 </label>
             </section>
 
             <section class="fft-settings-group">
-                <div class="fft-settings-heading"><i class="fa-solid fa-window-restore"></i><span>Компоновка</span></div>
+                <div class="fft-settings-heading"><i class="fa-solid fa-message"></i><span>Сообщения</span></div>
+                <label class="fft-setting-row" for="fft_density">
+                    <span><strong>Расстояние между сообщениями</strong><small>Обычное или более компактное расположение</small></span>
+                    <select id="fft_density" class="text_pole">
+                        <option value="comfortable">Обычное</option>
+                        <option value="compact">Компактное</option>
+                    </select>
+                </label>
+                <label class="fft-setting-row" for="fft_avatar_mode">
+                    <span><strong>Аватары в чате</strong><small>Настройка применяется к мобильной версии</small></span>
+                    <select id="fft_avatar_mode" class="text_pole">
+                        <option value="hidden">Не показывать</option>
+                        <option value="top">Большой сверху</option>
+                        <option value="wrap">С обтеканием текстом</option>
+                    </select>
+                </label>
+            </section>
+
+            <section class="fft-settings-group">
+                <div class="fft-settings-heading"><i class="fa-solid fa-mobile-screen"></i><span>Мобильная версия</span></div>
+                <label class="fft-setting-row" for="fft_mobile_home">
+                    <span><strong>Экран кнопки «Чаты»</strong><small>Что открывать при возврате из диалога</small></span>
+                    <select id="fft_mobile_home" class="text_pole">
+                        <option value="chats">Список чатов</option>
+                        <option value="welcome">Welcome-панель</option>
+                    </select>
+                </label>
+            </section>
+
+            <section class="fft-settings-group">
+                <div class="fft-settings-heading"><i class="fa-solid fa-display"></i><span>Режим интерфейса</span></div>
+                <small class="fft-settings-group-note">Автовыбор подходит большинству устройств. Ручные переключатели нужны, только если вы хотите отключить одну из версий.</small>
                 <label class="fft-setting-toggle" for="fft_auto_layout">
-                    <span><strong>Автовыбор</strong><small>Переключать ПК и телефон при 1000 px</small></span>
+                    <span><strong>Автоматически по ширине экрана</strong><small>Мобильная версия до 1000 px, компьютерная — выше</small></span>
                     <input id="fft_auto_layout" type="checkbox">
                 </label>
                 <label class="fft-setting-toggle" for="fft_desktop_shell">
-                    <span><strong>Версия для ПК</strong><small>Rail, диалоги, чат и правая панель</small></span>
+                    <span><strong>Разрешить версию для ПК</strong><small>Левая колонка чатов, центральный чат и правая панель</small></span>
                     <input id="fft_desktop_shell" type="checkbox">
                 </label>
                 <label class="fft-setting-toggle" for="fft_mobile_shell_enabled">
-                    <span><strong>Версия для телефона</strong><small>Отдельная мобильная навигация</small></span>
+                    <span><strong>Разрешить мобильную версию</strong><small>Верхняя панель, мобильные экраны и нижняя навигация</small></span>
                     <input id="fft_mobile_shell_enabled" type="checkbox">
                 </label>
             </section>
 
             <section class="fft-settings-group">
-                <div class="fft-settings-heading"><i class="fa-solid fa-wand-magic-sparkles"></i><span>Эффекты</span></div>
-                <label class="fft-setting-toggle" for="fft_motion">
-                    <span><strong>Анимации</strong><small>Плавные переходы и состояния</small></span>
-                    <input id="fft_motion" type="checkbox">
-                </label>
-                <label class="fft-setting-toggle" for="fft_mobile_effects">
-                    <span><strong>Стекло на телефоне</strong><small>Дополнительный blur; расходует больше ресурсов</small></span>
-                    <input id="fft_mobile_effects" type="checkbox">
-                </label>
-            </section>
-
-            <section class="fft-settings-group">
                 <div class="fft-settings-heading"><i class="fa-solid fa-toolbox"></i><span>Мобильные инструменты</span></div>
-                <small class="fft-settings-group-note">Скрывайте редкие пункты и меняйте их порядок. Штатные функции не удаляются.</small>
+                <small class="fft-settings-group-note">Здесь можно скрыть ненужные панели и изменить порядок кнопок. Сами функции SillyTavern не удаляются.</small>
                 <div id="fft_tool_preferences" class="fft-tool-preferences"></div>
             </section>
 
-            <small class="fft-settings-note"><i class="fa-solid fa-shield-halved"></i> Расширение меняет только представление. Сообщения, генерация и данные остаются штатными.</small>
+            <button id="fft_reset_settings" class="menu_button fft-reset-settings" type="button">
+                <i class="fa-solid fa-arrow-rotate-left"></i>
+                <span><strong>Сбросить настройки</strong><small>Вернуть исходную тему, компоновку и мобильные параметры</small></span>
+            </button>
+
+            <small class="fft-settings-note"><i class="fa-solid fa-shield-halved"></i> Расширение меняет только отображение. Чаты, генерация и данные остаются штатными.</small>
         </div>
     </div>
 </div>
