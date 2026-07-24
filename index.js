@@ -5,7 +5,7 @@ import { openGroupById, openGroupChat } from '../../../group-chats.js';
 const EXTENSION_PATH = new URL('.', import.meta.url).pathname.replace(/\/$/, '');
 const EXTENSION_NAME = EXTENSION_PATH.replace(/^\/scripts\/extensions\//, '');
 const ROOT_CLASS = 'fft-enabled';
-const ASSET_REVISION = '0.9.16';
+const ASSET_REVISION = '0.9.17';
 
 const defaults = Object.freeze({
     enabled: true,
@@ -15,7 +15,6 @@ const defaults = Object.freeze({
     highContrast: false,
     desktopShell: true,
     mobileShell: true,
-    mobileHome: 'chats',
     autoLayout: true,
     avatarMode: 'hidden',
     hiddenTools: [],
@@ -26,7 +25,8 @@ let observer;
 let chatListQuery = '';
 let recentChats = [];
 let mobileScreen = 'chats';
-let mobileWelcomePanel = null;
+let recentChatsLoadTimer = 0;
+let interfaceRefreshFrame = 0;
 const mobileMedia = window.matchMedia('(max-width: 1000px)');
 
 function updateViewportMetrics() {
@@ -117,7 +117,6 @@ function syncControls() {
     $('#fft_high_contrast').prop('checked', value.highContrast);
     $('#fft_desktop_shell').prop('checked', value.desktopShell);
     $('#fft_mobile_shell_enabled').prop('checked', value.mobileShell);
-    $('#fft_mobile_home').val(value.mobileHome);
     $('#fft_auto_layout').prop('checked', value.autoLayout);
     $('#fft_avatar_mode').val(value.avatarMode);
 }
@@ -131,7 +130,7 @@ function updateSetting(key, value) {
 function resetExtensionSettings() {
     if (!window.confirm('Сбросить все настройки Floating Frost Telegram UI?')) return;
     extension_settings[EXTENSION_NAME] = structuredClone(defaults);
-    mobileScreen = getContext().getCurrentChatId() ? 'chat' : getPreferredMobileHome();
+    mobileScreen = getContext().getCurrentChatId() ? 'chat' : 'chats';
     syncControls();
     applyState();
     renderMobileTools();
@@ -210,10 +209,6 @@ function bindControls() {
     $('#fft_high_contrast').on('input', event => updateSetting('highContrast', event.currentTarget.checked));
     $('#fft_desktop_shell').on('input', event => updateSetting('desktopShell', event.currentTarget.checked));
     $('#fft_mobile_shell_enabled').on('input', event => updateSetting('mobileShell', event.currentTarget.checked));
-    $('#fft_mobile_home').on('change', event => {
-        updateSetting('mobileHome', event.currentTarget.value);
-        if (!getContext().getCurrentChatId()) setMobileScreen(event.currentTarget.value === 'welcome' ? 'welcome' : 'chats');
-    });
     $('#fft_auto_layout').on('input', event => updateSetting('autoLayout', event.currentTarget.checked));
     $('#fft_avatar_mode').on('change', event => updateSetting('avatarMode', event.currentTarget.value));
     $('#fft_reset_settings').on('click', resetExtensionSettings);
@@ -385,88 +380,12 @@ function setMobileScreen(screen) {
     updateMobileShell();
 }
 
-function getPreferredMobileHome() {
-    return settings().mobileHome === 'welcome' ? 'welcome' : 'chats';
-}
-
-function openPreferredMobileHome() {
-    setMobileScreen(getPreferredMobileHome());
-}
-
-function createFallbackWelcomePanel() {
-    const panel = document.createElement('section');
-    panel.className = 'welcomePanel fft-generated-welcome';
-    panel.innerHTML = `
-        <div class="welcomeHeaderTitle">
-            <span class="welcomeHeaderVersionDisplay">SillyTavern</span>
-        </div>
-        <div class="welcomeHeader">
-            <div class="recentChatsTitle">Недавние чаты</div>
-            <div class="welcomeShortcuts"></div>
-        </div>
-        <div class="welcomeRecent">
-            <div class="recentChatList"></div>
-        </div>`;
-    const list = panel.querySelector('.recentChatList');
-    for (const chat of recentChats) {
-        const item = document.createElement('div');
-        item.className = 'recentChat';
-        item.innerHTML = `
-            <div class="avatar"><img alt=""></div>
-            <div class="chatName">
-                <span></span><span class="characterName"></span><span></span>
-            </div>
-            <span class="chatDate"></span>
-            <span class="chatStats"><span class="counterBlock"><small></small></span></span>`;
-        item.querySelector('img').src = chat.thumbnail;
-        item.querySelector('.characterName').textContent = chat.name;
-        item.querySelector('.chatName > span:last-child').textContent = chat.label;
-        item.querySelector('.chatDate').textContent = chat.dateShort;
-        item.querySelector('.chatStats small').textContent = String(chat.messageCount);
-        item.addEventListener('click', async () => {
-            panel.remove();
-            if (mobileWelcomePanel === panel) mobileWelcomePanel = null;
-            setMobileScreen('chat');
-            await openExistingChat(chat);
-        });
-        list.append(item);
-    }
-    if (!recentChats.length) {
-        const empty = document.createElement('div');
-        empty.className = 'noRecentChat';
-        empty.textContent = 'Недавних чатов пока нет';
-        list.append(empty);
-    }
-    return panel;
-}
-
-function syncMobileWelcomePanel(restore = false) {
-    const chat = document.querySelector('body > #sheld > #chat');
-    if (!chat) return;
-    const livePanel = chat.querySelector(':scope > .welcomePanel');
-    if (livePanel) {
-        mobileWelcomePanel = livePanel;
-        if (!livePanel.dataset.fftNavigationBound) {
-            livePanel.dataset.fftNavigationBound = 'true';
-            livePanel.addEventListener('click', event => {
-                const recentChat = event.target.closest('.recentChat');
-                const action = event.target.closest('button, a, .menu_button, .chatActions, .recentChatPinned');
-                if (recentChat && !action) setMobileScreen('chat');
-            }, { capture: true });
-        }
-    }
-    if (restore && !livePanel) {
-        mobileWelcomePanel ||= createFallbackWelcomePanel();
-        chat.prepend(mobileWelcomePanel);
-    }
-}
-
 function updateMobileNavState() {
     const shell = document.querySelector('#fft_mobile_shell');
     if (!shell) return;
     const panel = document.documentElement.dataset.fftMobilePanel;
     shell.querySelectorAll('.fft-mobile-nav button').forEach(button => {
-        const active = (button.dataset.fftMobile === 'chats' && ['chats', 'welcome'].includes(mobileScreen) && !panel)
+        const active = (button.dataset.fftMobile === 'chats' && mobileScreen === 'chats' && !panel)
             || (button.dataset.fftMobile === 'tools' && mobileScreen === 'tools' && !panel)
             || (button.dataset.fftDrawer === '#right-nav-panel' && panel === 'right-nav-panel')
             || (button.dataset.fftDrawer === '#user-settings-block' && panel === 'user-settings-block');
@@ -488,12 +407,9 @@ function updateMobileShell() {
 
     const context = getContext();
     const hasActiveChat = Boolean(context.getCurrentChatId());
-    const preferredHome = getPreferredMobileHome();
-    if (mobileScreen === 'chat' && !hasActiveChat) mobileScreen = preferredHome;
+    if (mobileScreen === 'chat' && !hasActiveChat) mobileScreen = 'chats';
     root.dataset.fftMobileScreen = mobileScreen;
     const isChat = mobileScreen === 'chat';
-    const isWelcome = mobileScreen === 'welcome';
-    syncMobileWelcomePanel(isWelcome);
     const title = shell.querySelector('.fft-mobile-title');
     const subtitle = shell.querySelector('.fft-mobile-subtitle');
     const back = shell.querySelector('[data-fft-mobile="back"]');
@@ -502,11 +418,11 @@ function updateMobileShell() {
     const character = context.characters?.[context.characterId];
     const activeChat = recentChats.find(chat => String(chat.fileName) === String(context.getCurrentChatId()));
 
-    back.hidden = mobileScreen === 'chats' || isWelcome;
+    back.hidden = mobileScreen === 'chats';
     menu.hidden = !isChat;
     shell.querySelector('.fft-mobile-chat-history').hidden = !isChat;
-    title.textContent = isChat ? (activeChat?.name || character?.name || 'Диалог') : (isWelcome ? 'Добро пожаловать' : (mobileScreen === 'tools' ? 'Инструменты' : 'Диалоги'));
-    subtitle.textContent = isChat ? (activeChat?.label || 'активный диалог') : (isWelcome ? 'SillyTavern' : (mobileScreen === 'tools' ? 'Панели SillyTavern' : `${recentChats.length} чатов`));
+    title.textContent = isChat ? (activeChat?.name || character?.name || 'Диалог') : (mobileScreen === 'tools' ? 'Инструменты' : 'Диалоги');
+    subtitle.textContent = isChat ? (activeChat?.label || 'активный диалог') : (mobileScreen === 'tools' ? 'Панели SillyTavern' : `${recentChats.length} чатов`);
     const avatarSrc = isChat ? (activeChat?.thumbnail || (character ? context.getThumbnailUrl('avatar', character.avatar) : '')) : '';
     avatar.hidden = !avatarSrc;
     if (avatarSrc) avatar.src = avatarSrc;
@@ -514,7 +430,7 @@ function updateMobileShell() {
     shell.querySelector('.fft-mobile-chats-screen').hidden = mobileScreen !== 'chats';
     shell.querySelector('.fft-mobile-tools-screen').hidden = mobileScreen !== 'tools';
     shell.querySelector('.fft-mobile-nav').hidden = isChat;
-    renderMobileChatList();
+    if (mobileScreen === 'chats') renderMobileChatList();
     if (mobileScreen === 'tools') renderMobileTools();
     updateMobileNavState();
 }
@@ -542,6 +458,7 @@ function createMobileChatListItem(chat) {
 }
 
 function renderMobileChatList() {
+    if (mobileScreen !== 'chats') return;
     const list = document.querySelector('#fft_mobile_chat_list');
     if (!list) return;
     const query = chatListQuery.trim().toLocaleLowerCase();
@@ -679,7 +596,7 @@ function createMobileShell() {
         const action = event.target.closest('[data-fft-mobile]')?.dataset.fftMobile;
         const drawer = event.target.closest('[data-fft-drawer]')?.dataset.fftDrawer;
         const native = event.target.closest('[data-fft-native]')?.dataset.fftNative;
-        if (action === 'back' || action === 'chats') openPreferredMobileHome();
+        if (action === 'back' || action === 'chats') setMobileScreen('chats');
         if (action === 'tools') setMobileScreen('tools');
         if (action === 'menu') clickVisible('#options_button');
         if (drawer) openMobileDrawer(drawer);
@@ -689,7 +606,7 @@ function createMobileShell() {
         closeMobileDrawers();
         document.documentElement.classList.remove('fft-mobile-drawer-open');
     });
-    mobileScreen = getContext().getCurrentChatId() ? 'chat' : getPreferredMobileHome();
+    mobileScreen = getContext().getCurrentChatId() ? 'chat' : 'chats';
     renderMobileTools();
     updateMobileShell();
 }
@@ -713,13 +630,11 @@ async function loadRecentChats() {
     }
     renderChatList();
     updateContextPanel();
-    if (mobileWelcomePanel?.classList.contains('fft-generated-welcome')) {
-        mobileWelcomePanel = null;
-        if (mobileScreen === 'welcome') {
-            document.querySelector('body > #sheld > #chat > .fft-generated-welcome')?.remove();
-            syncMobileWelcomePanel(true);
-        }
-    }
+}
+
+function scheduleRecentChatsLoad(delay = 120) {
+    window.clearTimeout(recentChatsLoadTimer);
+    recentChatsLoadTimer = window.setTimeout(() => void loadRecentChats(), delay);
 }
 
 async function openExistingChat(chat) {
@@ -790,6 +705,10 @@ function createChatListItem(chat) {
 function renderChatList() {
     const list = document.querySelector('#fft_chat_list_items');
     if (!list) return;
+    if (!document.documentElement.classList.contains('fft-desktop-active')) {
+        renderMobileChatList();
+        return;
+    }
     const query = chatListQuery.trim().toLocaleLowerCase();
     const entries = recentChats.filter(chat => !query || `${chat.name} ${chat.fileName}`.toLocaleLowerCase().includes(query));
     list.replaceChildren(...entries.map(createChatListItem));
@@ -799,7 +718,7 @@ function renderChatList() {
         empty.textContent = 'Ничего не найдено';
         list.append(empty);
     }
-    renderMobileChatList();
+    if (mobileScreen === 'chats') renderMobileChatList();
 }
 
 function createPersistentChatList() {
@@ -822,7 +741,7 @@ function createPersistentChatList() {
         renderChatList();
     });
     aside.querySelector('.fft-chat-list-add').addEventListener('click', () => toggleLiveDrawer('#right-nav-panel', '#rightNavDrawerIcon'));
-    void loadRecentChats();
+    scheduleRecentChatsLoad();
 }
 
 function observeMessages() {
@@ -831,20 +750,11 @@ function observeMessages() {
     observer = new MutationObserver(records => {
         if (!document.documentElement.classList.contains(ROOT_CLASS)) return;
         for (const record of records) {
-            for (const node of record.removedNodes) {
-                if (!(node instanceof HTMLElement)) continue;
-                if (node.matches('.welcomePanel')) mobileWelcomePanel = node;
-                const removedPanel = node.querySelector?.('.welcomePanel');
-                if (removedPanel) mobileWelcomePanel = removedPanel;
-            }
             for (const node of record.addedNodes) {
                 if (!(node instanceof HTMLElement)) continue;
                 if (node.matches('.mes')) decorateMessage(node);
                 decorateMessages(node);
             }
-        }
-        if (mobileScreen === 'welcome') {
-            requestAnimationFrame(() => syncMobileWelcomePanel(true));
         }
     });
     observer.observe(chat, { childList: true, subtree: true });
@@ -852,31 +762,35 @@ function observeMessages() {
 
 function bindSillyTavernEvents() {
     const { eventSource, eventTypes } = getContext();
-    const refresh = () => requestAnimationFrame(() => {
-        decorateMessages();
-        updateHeaderIdentity();
-        renderChatList();
-        updateContextPanel();
-        updateMobileShell();
+    const refreshInterface = () => {
+        if (interfaceRefreshFrame) return;
+        interfaceRefreshFrame = requestAnimationFrame(() => {
+            interfaceRefreshFrame = 0;
+            updateHeaderIdentity();
+            updateContextPanel();
+            updateMobileShell();
+        });
+    };
+    eventSource.on(eventTypes.CHAT_CHANGED, () => {
+        if (document.documentElement.classList.contains('fft-mobile-active')) mobileScreen = 'chat';
+        refreshInterface();
+        scheduleRecentChatsLoad();
     });
     [
-        eventTypes.CHAT_CHANGED,
-        eventTypes.MORE_MESSAGES_LOADED,
-        eventTypes.USER_MESSAGE_RENDERED,
-        eventTypes.CHARACTER_MESSAGE_RENDERED,
-        eventTypes.MESSAGE_UPDATED,
-        eventTypes.MESSAGE_SWIPED,
         eventTypes.CHARACTER_EDITED,
         eventTypes.CHARACTER_DELETED,
         eventTypes.CHARACTER_DUPLICATED,
-    ].filter(Boolean).forEach(type => eventSource.on(type, refresh));
-    eventSource.on(eventTypes.CHAT_CHANGED, () => requestAnimationFrame(() => {
-        if (document.documentElement.classList.contains('fft-mobile-active')) mobileScreen = 'chat';
-        updateMobileShell();
-        void loadRecentChats();
+    ].filter(Boolean).forEach(type => eventSource.on(type, () => {
+        refreshInterface();
+        scheduleRecentChatsLoad();
     }));
-    eventSource.on(eventTypes.APP_READY, () => requestAnimationFrame(() => void loadRecentChats()));
-    eventSource.on(eventTypes.CHARACTER_PAGE_LOADED, () => requestAnimationFrame(() => void loadRecentChats()));
+    eventSource.on(eventTypes.APP_READY, () => scheduleRecentChatsLoad());
+    eventSource.on(eventTypes.CHARACTER_PAGE_LOADED, () => scheduleRecentChatsLoad());
+    /*
+     * Message render/update events are intentionally handled only by the
+     * incremental MutationObserver. Rebuilding both chat lists for every
+     * loaded message caused quadratic work on long mobile chats.
+     */
 }
 
 jQuery(async () => {

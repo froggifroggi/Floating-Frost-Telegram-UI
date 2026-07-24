@@ -16,6 +16,12 @@
     --fft-list-width: clamp(280px, 23vw, 350px);
 }
 
+/* Welcome UI was removed in 0.9.17; chat lists are the only home screen. */
+html.fft-enabled body > #sheld > #chat > .welcomePanel {
+    display: none !important;
+    content-visibility: hidden !important;
+}
+
 html.fft-enabled[data-fft-theme="adaptive"] {
     --fft-accent: var(--customThemeColor, var(--SmartThemeQuoteColor, #3390ec));
     --fft-accent-strong: var(--SmartThemeButtonHoverColor, var(--fft-accent));
@@ -3746,6 +3752,15 @@ html.fft-enabled[data-fft-theme="adaptive"] {
     --fft-radius: max(10px, var(--avatar-base-border-radius, 18px));
 }
 
+/*
+ * FFT no longer exposes or styles a welcome mode. Hide SillyTavern's native
+ * welcome card while the shell is active; navigation always uses chat lists.
+ */
+html.fft-enabled #chat > .welcomePanel {
+    display: none !important;
+    content-visibility: hidden !important;
+}
+
 /* Welcome mode is the final mobile layout state. */
 @media screen and (max-width: 1000px) {
     html.fft-enabled.fft-mobile-active[data-fft-theme][data-fft-mobile-screen="welcome"] body > #sheld {
@@ -3810,4 +3825,10 @@ html.fft-enabled[data-fft-theme="adaptive"] {
         min-width: 0 !important;
         text-align: left !important;
     }
+}
+
+/* Welcome UI was removed in 0.9.17; chat lists are the only home screen. */
+html.fft-enabled body > #sheld > #chat > .welcomePanel {
+    display: none !important;
+    content-visibility: hidden !important;
 }
