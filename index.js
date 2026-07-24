@@ -27,51 +27,78 @@ let recentChats = [];
 let mobileScreen = 'chats';
 let recentChatsLoadTimer = 0;
 let interfaceRefreshFrame = 0;
+let viewportMetricsFrame = 0;
+let lastViewportHeight = -1;
 const mobileMedia = window.matchMedia('(max-width: 1000px)');
+const defaultEntries = Object.entries(defaults);
+let chatElement = null;
 
+// #chat живёт столько же, сколько страница, но кэш всё равно проверяем на отсоединение.
+function getChatElement() {
+    if (!chatElement?.isConnected) chatElement = document.querySelector('body > #sheld > #chat');
+    return chatElement;
+}
+
+/*
+ * Запись кастомного свойства в documentElement инвалидирует наследуемые
+ * свойства по всему дереву, а обработчик висит на visualViewport resize/scroll
+ * и window resize — то есть на потоке событий скролла. Поэтому: запись только
+ * при реально изменившейся высоте и не чаще одного раза за кадр.
+ * Свойство --fft-keyboard-inset убрано: в style.css оно не использовалось ни разу.
+ */
 function updateViewportMetrics() {
-    const viewport = window.visualViewport;
-    const height = viewport?.height || window.innerHeight;
-    const keyboardInset = Math.max(0, window.innerHeight - height - (viewport?.offsetTop || 0));
-    document.documentElement.style.setProperty('--fft-viewport-height', `${height}px`);
-    document.documentElement.style.setProperty('--fft-keyboard-inset', `${keyboardInset}px`);
+    if (viewportMetricsFrame) return;
+    viewportMetricsFrame = requestAnimationFrame(() => {
+        viewportMetricsFrame = 0;
+        const height = Math.round(window.visualViewport?.height || window.innerHeight);
+        if (height === lastViewportHeight) return;
+        lastViewportHeight = height;
+        document.documentElement.style.setProperty('--fft-viewport-height', `${height}px`);
+    });
 }
 
 function settings() {
     extension_settings[EXTENSION_NAME] ??= {};
     const current = extension_settings[EXTENSION_NAME];
-    for (const [key, value] of Object.entries(defaults)) {
+    // Object.entries(defaults) вынесен из функции: settings() зовётся на каждое сообщение.
+    for (const [key, value] of defaultEntries) {
         current[key] ??= value;
     }
     return current;
 }
 
-function refreshExtensionStylesheet() {
-    const expectedPath = `${EXTENSION_PATH}/style.css`;
-    const link = [...document.querySelectorAll('link[rel="stylesheet"]')]
-        .find(candidate => new URL(candidate.href, window.location.href).pathname === expectedPath);
-    if (!(link instanceof HTMLLinkElement)) return;
-    const url = new URL(link.href, window.location.href);
-    if (url.searchParams.get('fft') === ASSET_REVISION) return;
-    url.searchParams.set('fft', ASSET_REVISION);
-    link.href = url.href;
-}
+/*
+ * Здесь была refreshExtensionStylesheet(): она дописывала ?fft=<версия> к href
+ * уже загруженного <link>. Новый URL — промах кэша, поэтому каждая загрузка
+ * страницы скачивала и парсила style.css второй раз и получала лишний полный
+ * пересчёт стилей (плюс мигание неоформленного контента). Смысла в этом нет:
+ * SillyTavern раздаёт public через express.static с ETag и maxAge=0, так что
+ * свежесть файла браузер проверяет сам.
+ */
 
-function decorateMessage(element) {
+/*
+ * Идемпотентно и без лишних чтений DOM: раньше на каждый вызов безусловно
+ * писался атрибут data-fft-decorated (в CSS он не использовался) и делались
+ * три querySelector в arrangeMessageAvatar. applyState() зовёт это на все
+ * сообщения чата, в том числе на каждый кадр перетаскивания ползунка, так что
+ * повторный проход обязан быть бесплатным. Режим аватара передаётся аргументом,
+ * чтобы не дёргать settings() на каждое сообщение.
+ */
+function decorateMessage(element, mode) {
     if (!(element instanceof HTMLElement) || !element.matches('.mes')) return;
     element.classList.add('fft-message');
-    element.dataset.fftDecorated = 'true';
-    arrangeMessageAvatar(element);
+    if (element.dataset.fftAvatar === mode) return;
+    element.dataset.fftAvatar = mode;
+    arrangeMessageAvatar(element, mode);
 }
 
-function arrangeMessageAvatar(message) {
+function arrangeMessageAvatar(message, mode = settings().avatarMode) {
     const block = message.querySelector(':scope > .mes_block');
     const directWrapper = message.querySelector(':scope > .mesAvatarWrapper');
     const nestedWrapper = block?.querySelector(':scope > .mesAvatarWrapper[data-fft-reparented="true"]');
     const wrapper = directWrapper || nestedWrapper;
     if (!block || !wrapper) return;
 
-    const mode = settings().avatarMode;
     if (mode === 'wrap') {
         if (wrapper.parentElement !== block) block.prepend(wrapper);
         wrapper.dataset.fftReparented = 'true';
@@ -82,8 +109,16 @@ function arrangeMessageAvatar(message) {
     delete wrapper.dataset.fftReparented;
 }
 
-function decorateMessages(root = document) {
-    root.querySelectorAll?.('#chat .mes').forEach(decorateMessage);
+function decorateMessages(root = getChatElement()) {
+    if (!root) return;
+    const mode = settings().avatarMode;
+    // Сообщения — прямые дети #chat, поэтому обход поддерева не нужен.
+    for (const element of root.children) decorateMessage(element, mode);
+}
+
+function applyWallpaperDim(value = settings()) {
+    const dim = Math.max(0, Math.min(80, Number(value.wallpaperDim) || 0)) / 100;
+    document.documentElement.style.setProperty('--fft-wallpaper-dim', String(dim));
 }
 
 function applyState() {
@@ -93,7 +128,6 @@ function applyState() {
     const mobileActive = Boolean(value.enabled && value.mobileShell && useMobileLayout);
     const desktopActive = Boolean(value.enabled && value.desktopShell && !useMobileLayout);
     root.classList.toggle(ROOT_CLASS, Boolean(value.enabled));
-    root.classList.remove('fft-no-motion', 'fft-mobile-effects');
     root.classList.toggle('fft-high-contrast', Boolean(value.highContrast));
     root.classList.toggle('fft-desktop-shell', desktopActive);
     root.classList.toggle('fft-desktop-active', desktopActive);
@@ -102,10 +136,14 @@ function applyState() {
     root.dataset.fftDensity = value.density;
     root.dataset.fftTheme = value.theme;
     root.dataset.fftAvatarMode = ['hidden', 'top', 'wrap'].includes(value.avatarMode) ? value.avatarMode : 'hidden';
-    root.style.removeProperty('--fft-blur');
-    root.style.setProperty('--fft-wallpaper-dim', String(Math.max(0, Math.min(80, Number(value.wallpaperDim) || 0)) / 100));
+    applyWallpaperDim(value);
     if (value.enabled) decorateMessages();
     updateMobileShell();
+    /*
+     * Убраны две мёртвые операции: снятие классов fft-no-motion/fft-mobile-effects
+     * (их никто не выставляет) и removeProperty('--fft-blur') (инлайновым это
+     * свойство не задаётся, значение всегда приходит из :root в style.css).
+     */
 }
 
 function syncControls() {
@@ -121,9 +159,20 @@ function syncControls() {
     $('#fft_avatar_mode').val(value.avatarMode);
 }
 
+/*
+ * Настройки, которым достаточно записи одной CSS-переменной. Затемнение фона
+ * сидит на <input type="range"> с событием 'input', то есть сыплется покадрово
+ * при перетаскивании. Полный applyState() обходил при этом все сообщения чата
+ * и перерисовывал мобильную оболочку — на длинном чате это кадры по десяткам
+ * миллисекунд на каждое движение ползунка.
+ */
+const cheapSettingAppliers = { wallpaperDim: applyWallpaperDim };
+
 function updateSetting(key, value) {
     settings()[key] = value;
-    applyState();
+    const applyCheap = cheapSettingAppliers[key];
+    if (applyCheap) applyCheap();
+    else applyState();
     saveSettingsDebounced();
 }
 
@@ -276,10 +325,25 @@ function getRecentChatKey(chat) {
     return `${chat.group ? `group_${chat.group}` : ''}${chat.avatar ? `char_${chat.avatar}` : ''}_${chat.file_name}`;
 }
 
-function normalizeRecentChat(chat) {
-    const { characters, groups, getThumbnailUrl, timestampToMoment } = getContext();
-    const character = characters.find(item => item?.avatar === chat.avatar);
-    const group = groups.find(item => String(item?.id) === String(chat.group));
+/*
+ * Индексы для разбора пачки чатов. Раньше normalizeRecentChat на каждый чат
+ * делал characters.find + groups.find (O(чаты x персонажи): 100 чатов на
+ * библиотеку в 800 персонажей — под 80 000 сравнений) и заново парсил JSON
+ * закреплённых чатов. Теперь всё это считается один раз на загрузку.
+ */
+function createRecentChatIndex() {
+    const { characters, groups } = getContext();
+    const charactersByAvatar = new Map();
+    for (const item of characters) if (item?.avatar) charactersByAvatar.set(item.avatar, item);
+    const groupsById = new Map();
+    for (const item of groups) if (item?.id !== undefined) groupsById.set(String(item.id), item);
+    return { charactersByAvatar, groupsById, pinned: getPinnedChats() };
+}
+
+function normalizeRecentChat(chat, index) {
+    const { getThumbnailUrl, timestampToMoment } = getContext();
+    const character = index.charactersByAvatar.get(chat.avatar);
+    const group = index.groupsById.get(String(chat.group));
     const fileName = String(chat.file_name || '').replace(/\.jsonl$/i, '');
     const fallbackParts = fileName.split(' - ');
     const timestamp = timestampToMoment(chat.last_mes);
@@ -297,7 +361,7 @@ function normalizeRecentChat(chat) {
         dateLong: timestamp?.isValid?.() ? timestamp.format('LL LT') : '',
         messageCount: Number(chat.chat_items || 0),
         fileSize: String(chat.file_size || ''),
-        pinned: Object.hasOwn(getPinnedChats(), getRecentChatKey(chat)),
+        pinned: Object.hasOwn(index.pinned, getRecentChatKey(chat)),
     };
 }
 
@@ -611,28 +675,65 @@ function createMobileShell() {
     updateMobileShell();
 }
 
+/*
+ * /api/chats/recent — дорогой эндпоинт: он делает fs.stat на каждый файл чата
+ * каждого персонажа плюс все групповые, а затем читает сотню файлов. Поэтому
+ * здесь есть защита от параллельных запросов: без неё вызовы гнались наперегонки
+ * и ответ более раннего мог перезаписать результат более позднего.
+ */
+let recentChatsRequest = null;
+let recentChatsPending = false;
+
 async function loadRecentChats() {
-    const { getRequestHeaders } = getContext();
-    const pinned = Object.values(getPinnedChats());
+    if (recentChatsRequest) {
+        // Запрос уже в полёте: помечаем, что данные устарели, и ждём его.
+        recentChatsPending = true;
+        return recentChatsRequest;
+    }
+    recentChatsRequest = (async () => {
+        const { getRequestHeaders } = getContext();
+        const pinned = Object.values(getPinnedChats());
+        try {
+            const response = await fetch('/api/chats/recent', {
+                method: 'POST',
+                headers: getRequestHeaders(),
+                body: JSON.stringify({ max: 100, pinned }),
+                cache: 'no-cache',
+            });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+            if (Array.isArray(data)) {
+                const index = createRecentChatIndex();
+                recentChats = data.map(chat => normalizeRecentChat(chat, index));
+            } else {
+                recentChats = [];
+            }
+        } catch (error) {
+            console.warn('[Floating Frost] Failed to load recent chats.', error);
+            recentChats = [];
+        }
+    })();
+
     try {
-        const response = await fetch('/api/chats/recent', {
-            method: 'POST',
-            headers: getRequestHeaders(),
-            body: JSON.stringify({ max: 100, pinned }),
-            cache: 'no-cache',
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-    recentChats = Array.isArray(data) ? data.map(normalizeRecentChat) : [];
-    } catch (error) {
-        console.warn('[Floating Frost] Failed to load recent chats.', error);
-        recentChats = [];
+        await recentChatsRequest;
+    } finally {
+        recentChatsRequest = null;
     }
     renderChatList();
     updateContextPanel();
+
+    if (recentChatsPending) {
+        recentChatsPending = false;
+        scheduleRecentChatsLoad();
+    }
 }
 
-function scheduleRecentChatsLoad(delay = 120) {
+/*
+ * Дебаунс поднят со 120 мс: за 120 мс не успевает схлопнуться даже серия
+ * событий от одного переключения чата, а каждый промах стоит полного обхода
+ * каталога чатов на сервере.
+ */
+function scheduleRecentChatsLoad(delay = 600) {
     window.clearTimeout(recentChatsLoadTimer);
     recentChatsLoadTimer = window.setTimeout(() => void loadRecentChats(), delay);
 }
@@ -744,20 +845,38 @@ function createPersistentChatList() {
     scheduleRecentChatsLoad();
 }
 
+/*
+ * Наблюдение ведётся только за прямыми детьми #chat.
+ *
+ * Раньше стояло { childList: true, subtree: true }, и на каждый добавленный
+ * узел вызывался querySelectorAll('#chat .mes'). При стриминге SillyTavern
+ * переписывает mes_text.innerHTML на каждом чанке, порождая десятки addedNodes,
+ * а узлы внутри mes_text .mes содержать не могут — то есть весь этот обход был
+ * чистыми накладными расходами на самом горячем пути приложения. Сообщения
+ * добавляются прямо в #chat (script.js: chatElement.append(...)), так что
+ * subtree не нужен и расширение полностью уходит со стриминга.
+ *
+ * Анимация появления вешается только когда за одну пачку пришло ровно одно
+ * сообщение. Отрисовка истории и подгрузка «показать ещё» идут пачками, и
+ * анимировать их не нужно — раньше они запускали сотни анимаций разом.
+ */
 function observeMessages() {
-    const chat = document.querySelector('body > #sheld > #chat');
+    const chat = getChatElement();
     if (!chat || observer) return;
     observer = new MutationObserver(records => {
         if (!document.documentElement.classList.contains(ROOT_CLASS)) return;
+        const added = [];
         for (const record of records) {
             for (const node of record.addedNodes) {
-                if (!(node instanceof HTMLElement)) continue;
-                if (node.matches('.mes')) decorateMessage(node);
-                decorateMessages(node);
+                if (node instanceof HTMLElement && node.matches('.mes')) added.push(node);
             }
         }
+        if (!added.length) return;
+        const mode = settings().avatarMode;
+        for (const node of added) decorateMessage(node, mode);
+        if (added.length === 1) added[0].classList.add('fft-message-enter');
     });
-    observer.observe(chat, { childList: true, subtree: true });
+    observer.observe(chat, { childList: true });
 }
 
 function bindSillyTavernEvents() {
@@ -785,16 +904,22 @@ function bindSillyTavernEvents() {
         scheduleRecentChatsLoad();
     }));
     eventSource.on(eventTypes.APP_READY, () => scheduleRecentChatsLoad());
-    eventSource.on(eventTypes.CHARACTER_PAGE_LOADED, () => scheduleRecentChatsLoad());
     /*
-     * Message render/update events are intentionally handled only by the
-     * incremental MutationObserver. Rebuilding both chat lists for every
-     * loaded message caused quadratic work on long mobile chats.
+     * Подписка на CHARACTER_PAGE_LOADED снята намеренно. Это событие эмитится
+     * при любой перерисовке списка персонажей — смена страницы, фильтр по тегу,
+     * каждый дебаунснутый ввод в поиске персонажей, — а на нём висел вызов
+     * /api/chats/recent, который на сервере обходит stat-ом все файлы чатов.
+     * То есть набор текста в поиске персонажей превращался в серию полных
+     * сканов диска. Список недавних чатов от перелистывания страниц не меняется:
+     * его обновляют CHAT_CHANGED и события правки/удаления персонажа.
+     *
+     * События отрисовки сообщений по-прежнему обрабатывает только
+     * MutationObserver: перестройка обоих списков на каждое загруженное
+     * сообщение давала квадратичную работу на длинных мобильных чатах.
      */
 }
 
 jQuery(async () => {
-    refreshExtensionStylesheet();
     settings();
     const html = await $.get(`${EXTENSION_PATH}/settings.html?fft=${ASSET_REVISION}`);
     $('#extensions_settings2').append(html);
